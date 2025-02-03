@@ -1,6 +1,6 @@
 import logging
 from lib.pipeline import gnaf
-from lib.service.database import DatabaseService
+from lib.service.database import DatabaseServiceImpl, DatabaseService
 from lib.service.io import IoService
 
 _logger = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
     async def main() -> None:
         io = IoService.create(file_limit)
-        db = DatabaseService.create(instance_cfg.database, 1)
+        db = DatabaseServiceImpl.create(instance_cfg.database, 1)
         async with get_session(io, 'env-gnaf-cli') as session:
             env = await initialise(io, session)
 

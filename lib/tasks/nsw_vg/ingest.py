@@ -3,7 +3,7 @@ from typing import List, Literal, Optional
 import logging
 
 from lib.service.clock import ClockService
-from lib.service.database import DatabaseService, DatabaseConfig
+from lib.service.database import *
 from lib.service.io import IoService
 from lib.tasks.fetch_static_files import get_session
 
@@ -193,7 +193,7 @@ if __name__ == '__main__':
     ) -> None:
         clock = ClockService()
         io = IoService.create(file_limit)
-        db = DatabaseService.create(
+        db = DatabaseServiceImpl.create(
             parent_db_config,
             parent_db_pool_limit,
         )

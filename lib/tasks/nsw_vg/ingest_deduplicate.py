@@ -2,7 +2,7 @@ import logging
 from typing import List
 
 from lib.service.clock import ClockService
-from lib.service.database import DatabaseService, DatabaseConfig
+from lib.service.database import *
 from lib.service.io import IoService
 from lib.tooling.schema import SchemaCommand, SchemaController, SchemaDiscovery
 from lib.utility.format import fmt_time_elapsed
@@ -144,7 +144,7 @@ if __name__ == '__main__':
     async def _cli_main() -> None:
         clock = ClockService()
         io = IoService.create(None)
-        db = DatabaseService.create(
+        db = DatabaseServiceImpl.create(
             db_config,
             args.db_pool_size,
         )

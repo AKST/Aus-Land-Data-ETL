@@ -5,7 +5,7 @@ from typing import Tuple
 
 from lib.service.docker.config import ImageConfig, ContainerConfig
 from lib.service.docker.service import DockerService
-from lib.service.database import DatabaseService, DatabaseConfig
+from lib.service.database import DatabaseService, DatabaseServiceImpl, DatabaseConfig
 
 @dataclass
 class DockerCtrlInstruction(abc.ABC):
@@ -107,7 +107,7 @@ if __name__ == '__main__':
 
     async def main(instruction: DockerCtrlInstruction):
         async with DockerService.create() as docker:
-            db = DatabaseService.create(instance_cfg.database, 1)
+            db = DatabaseServiceImpl.create(instance_cfg.database, 1)
             await run_controller(instruction, db, docker)
 
     match args.command:

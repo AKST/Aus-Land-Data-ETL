@@ -2,7 +2,7 @@ import asyncio
 
 
 from lib.pipeline.abs import *
-from lib.service.database import DatabaseService, DatabaseConfig
+from lib.service.database import DatabaseService, DatabaseServiceImpl, DatabaseConfig
 from lib.service.io import IoService
 from lib.tasks.schema.count import run_count_for_schemas
 from lib.tooling.schema import SchemaController, SchemaDiscovery, SchemaCommand
@@ -33,7 +33,7 @@ async def _main(
     db_conf: DatabaseConfig,
     file_limit: int,
 ) -> None:
-    db = DatabaseService.create(db_conf, 4)
+    db = DatabaseServiceImpl.create(db_conf, 4)
     io = IoService.create(file_limit)
 
     async with get_session(io, 'env-abs-cli') as session:

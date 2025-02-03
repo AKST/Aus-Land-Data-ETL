@@ -17,7 +17,7 @@ from lib.pipeline.nsw_vg.property_sales.ingestion import NSW_VG_PS_INGESTION_CON
 from lib.pipeline.nsw_vg.property_sales.orchestration import *
 from lib.service.clock import ClockService
 from lib.service.io import IoService
-from lib.service.database import DatabaseService, DatabaseConfig
+from lib.service.database import *
 from lib.utility.sampling import Sampler, SamplingConfig
 
 from .config import NswVgTaskConfig
@@ -104,7 +104,7 @@ async def _child_main(
     file_limit = int(soft_limit * 0.8)
     io = IoService.create(file_limit - config.db_pool_size)
     clock = ClockService()
-    db = DatabaseService.create(config.db_config, config.db_pool_size)
+    db = DatabaseServiceImpl.create(config.db_config, config.db_pool_size)
 
     try:
         await db.open()
@@ -158,7 +158,7 @@ async def _cli_main(
 
     clock = ClockService()
     io = IoService.create(file_limit)
-    db = DatabaseService.create(db_config, 1)
+    db = DatabaseServiceImpl.create(db_config, 1)
 
     async with get_session(io, 'psi') as session:
         environment = await initialise(io, session)

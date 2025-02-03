@@ -5,12 +5,12 @@ from multiprocessing.synchronize import Semaphore as SemaphoreT
 from typing import Callable
 
 from lib.pipeline.nsw_vg.property_description import *
-from lib.service.database import DatabaseService, DatabaseConfig
+from lib.service.database import *
 from lib.tasks.nsw_vg.config import NswVgTaskConfig
 from lib.utility.logging import config_vendor_logging, config_logging
 
 async def cli_main(config: NswVgTaskConfig.PropDescIngest) -> None:
-    db_service = DatabaseService.create(config.db_config, config.workers)
+    db_service = DatabaseServiceImpl.create(config.db_config, config.workers)
     await ingest_property_description(db_service, config)
 
 async def ingest_property_description(
@@ -28,7 +28,7 @@ def spawn_worker(config: WorkerProcessConfig, semaphore: SemaphoreT, worker_debu
     async def worker_runtime(config: WorkerProcessConfig, semaphore: SemaphoreT, db_config: DatabaseConfig):
         config_vendor_logging({'sqlglot', 'psycopg.pool'})
         config_logging(config.worker_no, worker_debug)
-        db = DatabaseService.create(db_config, len(config.quantiles))
+        db = DatabaseServiceImpl.create(db_config, len(config.quantiles))
         worker = PropDescIngestionWorker(semaphore, db)
         await worker.ingest(config.quantiles)
     asyncio.run(worker_runtime(config, semaphore, db_config))

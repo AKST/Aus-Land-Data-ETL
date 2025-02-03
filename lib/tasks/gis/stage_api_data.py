@@ -29,7 +29,7 @@ from lib.pipeline.gis import (
     ENSW_ZONE_PROJECTION,
     YearMonth,
 )
-from lib.service.database import DatabaseService, DatabaseConfig
+from lib.service.database import *
 from lib.service.io import IoService
 from lib.service.clock import ClockService
 from lib.service.http import (
@@ -160,7 +160,7 @@ async def run_in_console(
     config: GisTaskConfig.StageApiData,
 ) -> None:
     io = IoService.create(open_file_limit)
-    db = DatabaseService.create(db_config, config.db_workers)
+    db = DatabaseServiceImpl.create(db_config, config.db_workers)
     clock = ClockService()
     controller = SchemaController(io, db, SchemaDiscovery.create(io))
     match config.db_mode:

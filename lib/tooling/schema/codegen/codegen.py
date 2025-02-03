@@ -1,8 +1,8 @@
 from collections import namedtuple
 from sqlglot import expressions, Expression
-from psycopg import AsyncCursor
 from typing import Dict, Iterator, List, Optional, Set, Tuple, Type
 
+from lib.service.database import DbCursorLike
 from ..type import Stmt, SchemaSyntax, EntityKind
 
 def _id(schema: Optional[str], name: str) -> str:
@@ -143,7 +143,7 @@ def reindex(commands: SchemaSyntax, allowed: Set[EntityKind]):
 FkDefinition = Tuple[str, str, str]
 FkMap = Dict[Tuple[Type[Stmt.Op], str], Optional[Dict[FkDefinition, str]]]
 
-async def make_fk_map(contents: SchemaSyntax, cursor: AsyncCursor) -> FkMap:
+async def make_fk_map(contents: SchemaSyntax, cursor: DbCursorLike) -> FkMap:
     query_without_ns = """
         SELECT tc.constraint_name,
                kcu.column_name,

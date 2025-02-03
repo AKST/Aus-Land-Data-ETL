@@ -27,9 +27,9 @@ def worker(id: int, config: WorkerConfig, tasks: List[WorkerTask]):
         import logging
         import os
 
-        from lib.service.database import DatabaseService
+        from lib.service.database import DatabaseServiceImpl
         from lib.utility.logging import config_logging
-        db = DatabaseService.create(config.db_config, config.db_poolsize)
+        db = DatabaseServiceImpl.create(config.db_config, config.db_poolsize)
 
         config_logging(worker=id, debug=False)
         logger = logging.getLogger(__name__)

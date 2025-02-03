@@ -5,7 +5,7 @@ import subprocess
 import sys
 
 from lib.service.docker.service import DockerService
-from lib.service.database import DatabaseService, DatabaseConfig
+from lib.service.database import *
 from lib.tasks.ctrl_docker import run_controller, DockerStart
 
 _DIR = '_out_pgdump'
@@ -49,7 +49,7 @@ async def run_import(backup_name: str,
                      workers: int) -> None:
 
     async with DockerService.create() as docker:
-        db = DatabaseService.create(db_cfg, 1)
+        db = DatabaseServiceImpl.create(db_cfg, 1)
         await run_controller(docker_start, db, docker)
         await db.close()
 

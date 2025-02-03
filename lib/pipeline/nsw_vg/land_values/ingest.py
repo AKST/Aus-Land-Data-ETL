@@ -43,7 +43,6 @@ class NswVgLvWorker:
                back_pressure: int):
         return NswVgLvWorker(id, ingestion, coordinator, asyncio.Queue(maxsize=back_pressure))
 
-
     async def start(self: Self, size: int):
         async def read_parse_messages() -> None:
             while self._keep_running():

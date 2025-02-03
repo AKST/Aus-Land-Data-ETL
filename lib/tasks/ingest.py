@@ -13,7 +13,7 @@ from lib.pipeline.nsw_vg.land_values import NswVgLvCsvDiscoveryMode
 from lib.pipeline.nsw_vg.property_sales.ingestion import NSW_VG_PS_INGESTION_CONFIG
 from lib.service.clock import ClockService
 from lib.service.docker import DockerService, ImageConfig, ContainerConfig
-from lib.service.database import DatabaseService, DatabaseConfig
+from lib.service.database import DatabaseServiceImpl, DatabaseConfig
 from lib.service.io import IoService
 from lib.tasks.fetch_static_files import initialise, get_session
 from lib.tasks.gis import ingest_gis, GisTaskConfig, http_limits_of
@@ -64,7 +64,7 @@ async def ingest_all(config: IngestConfig):
         await container.start()
 
     db_service_config = config.db_config
-    db_service = DatabaseService.create(db_service_config, config.db_connections)
+    db_service = DatabaseServiceImpl.create(db_service_config, config.db_connections)
 
     await db_service.wait_till_running()
     await db_service.open()

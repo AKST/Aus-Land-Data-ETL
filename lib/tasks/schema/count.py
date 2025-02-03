@@ -1,7 +1,7 @@
 import logging
 from typing import List, Self
 
-from lib.service.database import DatabaseService, DatabaseConfig
+from lib.service.database import DatabaseService, DatabaseServiceImpl, DatabaseConfig
 from lib.tooling.schema.config import schema_ns
 from lib.tooling.schema.type import SchemaNamespace
 
@@ -25,7 +25,7 @@ class Application:
             return [it[0] for it in await cursor.fetchall()]
 
 async def run_count_for_schemas(db_conf: DatabaseConfig, packages: List[SchemaNamespace]):
-    db = DatabaseService.create(db_conf, 1)
+    db = DatabaseServiceImpl.create(db_conf, 1)
     app = Application(db)
     logger = logging.getLogger(f'{__name__}.count')
 

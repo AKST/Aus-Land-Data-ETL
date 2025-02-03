@@ -146,7 +146,7 @@ def get_prop(expr, Type):
 def create_function(expr: Expression, command_e: str) -> Stmt.Op:
     match = re.search(r"FUNCTION\s+(?:(\w+)\.)?(\w+)\s*\(", command_e, re.IGNORECASE)
     if not match:
-        raise TypeError(f'unknown {repr(e)}')
+        raise TypeError(f'unknown {repr(expr)}')
     s_name = match.group(1) if match.group(1) else None
     t_name = match.group(2)
     return Stmt.CreateFunction(expr, s_name, t_name)
