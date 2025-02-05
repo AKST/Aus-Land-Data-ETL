@@ -15,6 +15,7 @@ from lib.service.clock import ClockService
 from lib.service.docker import DockerService, ImageConfig, ContainerConfig
 from lib.service.database import DatabaseServiceImpl, DatabaseConfig
 from lib.service.io import IoService, IoServiceImpl
+from lib.service.uuid import UuidServiceImpl
 from lib.tasks.fetch_static_files import initialise, get_session
 from lib.tasks.gis import ingest_gis, GisTaskConfig, http_limits_of
 from lib.tasks.ingest_gnaf import ingest_gnaf
@@ -45,6 +46,7 @@ _logger = logging.getLogger(__name__)
 
 async def ingest_all(config: IngestConfig):
     clock = ClockService()
+    uuid = UuidServiceImpl()
     io_service = IoServiceImpl.create(config.io_file_limit)
 
     t_start = clock.time()
@@ -167,6 +169,7 @@ async def ingest_all(config: IngestConfig):
     await ingest_gis(
         io_service,
         db_service,
+        uuid,
         clock,
         GisTaskConfig.Ingestion(
             deduplication=GisTaskConfig.Deduplication(

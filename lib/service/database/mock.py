@@ -1,7 +1,11 @@
 from dataclasses import dataclass, field
+import re
 from typing import Any, Self, Protocol, Sequence
 
 from .type import DatabaseService, CursorLike, ConnectionLike
+
+def clean_sql(sql: str) -> str:
+    return re.sub(r'(\s|\n)+', ' ', sql).strip()
 
 @dataclass
 class MockDbState:
@@ -23,16 +27,20 @@ class MockCursor(CursorLike):
         return self
 
     async def execute(self: Self, sql: str, args: Sequence[Any] = []) -> None:
-        self.state.execute_args.append((sql, args))
+        self.state.execute_args.append((clean_sql(sql), args))
 
     async def executemany(self: Self, sql: str, values: list[list[Any]]) -> None:
-        self.state.executemany_args.append((sql, values))
+        self.state.executemany_args.append((clean_sql(sql), values))
 
     async def fetchone(self: Self) -> list[Any]:
-        return self.state.fetchone_ret[self.state.fetchone_i]
+        result = self.state.fetchone_ret[self.state.fetchone_i]
+        self.state.fetchone_i += 1
+        return result
 
     async def fetchall(self: Self) -> list[list[Any]]:
-        return self.state.fetchall_ret[self.state.fetchall_i]
+        result = self.state.fetchall_ret[self.state.fetchall_i]
+        self.state.fetchall_i += 1
+        return result
 
 
 @dataclass
@@ -59,6 +67,8 @@ class MockConnection(ConnectionLike):
         return MockCursor(self.state)
 
     async def execute(self: Self, sql: str, args: Sequence[Any] = []) -> CursorLike:
+        sql = re.sub(r'(\s|\n)+', ' ', sql).strip()
+        self.state.execute_args.append((sql, args))
         return MockCursor(self.state)
 
 @dataclass

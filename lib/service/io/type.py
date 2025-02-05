@@ -13,6 +13,16 @@ class TmpFile(Protocol):
     async def __aexit__(self: Self, *args, **kwargs):
         ...
 
+class FileWritter(Protocol):
+    async def write(self: Self, data: bytes) -> None:
+        ...
+
+    async def __aenter__(self: Self) -> Self:
+        ...
+
+    async def __aexit__(self: Self, *args, **kwargs):
+        ...
+
 class IoService(Protocol):
     async def extract_zip(self, zipfile: str, unzip_to: str) -> None:
         ...
@@ -44,11 +54,14 @@ class IoService(Protocol):
         ...
 
     def f_read_chunks(self,
-                            file_path: str,
-                            chunk_size=1024) -> AsyncGenerator[bytes, None]:
+                      file_path: str,
+                      chunk_size=1024) -> AsyncGenerator[bytes, None]:
         ...
 
     async def f_write(self, file_path: str, data: str):
+        ...
+
+    def f_writter(self, file_path: str) -> FileWritter:
         ...
 
     async def f_delete(self, file_path: str):
@@ -77,5 +90,4 @@ class IoService(Protocol):
 
     async def create_tar_file(self: Self, tar_path: str, files: list[str]):
         ...
-
 

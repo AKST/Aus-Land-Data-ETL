@@ -5,10 +5,11 @@ from io import StringIO
 from logging import getLogger
 from multiprocessing import Queue as MpQueue
 import queue
-from typing import AsyncIterator, Self
+from typing import AsyncIterator, Self, Any
 
 from lib.service.database import DatabaseService
 from lib.service.io import IoService
+from lib.service.uuid import UuidService
 
 from .config import (
     NswVgLvTaskDesc,
@@ -125,9 +126,11 @@ class NswVgLvIngestion:
 
     def __init__(self: Self,
                  chunk_size: int,
+                 uuid: UuidService,
                  io: IoService,
                  db: DatabaseService):
         self.chunk_size = chunk_size
+        self._uuid = uuid
         self._io = io
         self._db = db
 
@@ -138,6 +141,7 @@ class NswVgLvIngestion:
         for index, row_raw in enumerate(csv.DictReader(quasi_file)):
             batch.append(RawLandValueRow.from_row(
                 row_raw,
+                self._uuid.get_uuid4_hex(),
                 index + 1,
                 task.file,
                 task.target.datetime,
@@ -153,17 +157,14 @@ class NswVgLvIngestion:
             yield NswVgLvTaskDesc.Load(task.file, offset, batch)
 
     async def load(self: Self, task: NswVgLvTaskDesc.Load):
-        columns = task.rows[0].db_columns()
-        column_str = ', '.join(columns)
-        values_str = ', '.join(['%s'] * len(columns))
-        values = [[getattr(row, name) for name in columns] for row in task.rows]
+        column_str, values_str, values = get_load_values(task)
 
         try:
             async with self._db.async_connect() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.executemany(f"""
-                        INSERT INTO nsw_vg_raw.land_value_row ({column_str})
-                        VALUES ({values_str})
+                        INSERT INTO nsw_vg_raw.land_value_row ( {column_str} )
+                        VALUES ( {values_str} )
                     """, values)
         except Exception as e:
             self._logger.error(f'failed to ingest {task.file}')
@@ -174,3 +175,10 @@ class NswVgLvIngestion:
             return await self._io.f_read(f, encoding='utf-8')
         except UnicodeDecodeError:
             return await self._io.f_read(f, encoding='ISO-8859-1')
+
+def get_load_values(task: NswVgLvTaskDesc.Load) -> tuple[str, str, list[list[Any]]]:
+    columns = task.rows[0].db_columns()
+    column_str = ', '.join(columns)
+    values_str = ', '.join(['%s'] * len(columns))
+    values = [[getattr(row, name) for name in columns] for row in task.rows]
+    return column_str, values_str, values

@@ -142,6 +142,7 @@ class RawLandValueRow:
 
     @staticmethod
     def from_row(row: Dict[str, str],
+                 uuid: str,
                  line_number: int,
                  file_path: str,
                  source_date: datetime) -> 'RawLandValueRow':

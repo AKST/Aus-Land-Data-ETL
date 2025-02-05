@@ -15,6 +15,7 @@ from lib.service.http import BackoffConfig, RetryPreference
 from lib.service.http.middleware.cache import HttpLocalCache
 from lib.service.static_environment import StaticEnvironmentInitialiser
 from lib.service.static_environment.defaults import get_static_dirs
+from lib.service.uuid import UuidServiceImpl
 
 BACKOFF_CONFIG = BackoffConfig(
     RetryPreference(allowed=16, pause_other_requests_while_retrying=True),
@@ -69,7 +70,8 @@ async def initialise(io_service: IoService, session: AbstractClientSession) -> E
                        gnaf=gnaf_dis)
 
 def get_session(io_service: IoService, cache_id: str) -> CachedClientSession:
-    file_cache = HttpLocalCache.create(io_service, cache_id)
+    uuid = UuidServiceImpl()
+    file_cache = HttpLocalCache.create(io_service, uuid, cache_id)
     session_t = ThrottledClientSession.create(THROTTLE_CONFIG)
     session_e = ExpBackoffClientSession.create(BACKOFF_CONFIG, session_t, )
     return CachedClientSession.create(file_cache, io_service, session_e)

@@ -24,6 +24,7 @@ from lib.service.io import IoService, IoServiceImpl
 from lib.service.database import *
 from lib.service.http import AbstractClientSession
 from lib.service.static_environment import StaticEnvironmentInitialiser
+from lib.service.uuid import *
 from lib.tasks.fetch_static_files import get_session
 from lib.tooling.schema import SchemaController, SchemaDiscovery, SchemaCommand
 
@@ -36,6 +37,7 @@ async def cli_main(cfg: NswVgTaskConfig.LandValue.Main) -> None:
     file_limit = int(soft_limit * 0.8)
     io = IoServiceImpl.create(file_limit)
     db = DatabaseServiceImpl.create(cfg.child_cfg.db_config, 1)
+    uuid = UuidServiceImpl()
     clock = ClockService()
 
     async with get_session(io, 'lv') as session:
@@ -100,7 +102,8 @@ def spawn_worker(id: int,
         logger = logging.getLogger(f'{__name__}.spawn')
         io = IoServiceImpl.create(file_limit)
         db = DatabaseServiceImpl.create(cfg.db_config, cfg.db_conn)
-        ingestion = NswVgLvIngestion(cfg.chunk_size, io, db)
+        uuid = UuidServiceImpl()
+        ingestion = NswVgLvIngestion(cfg.chunk_size, uuid, io, db)
         coordinator = NswVgLvCoordinatorClient(recv_q=recv_q, send_q=send_q)
         worker = NswVgLvWorker.create(id, ingestion, coordinator, cfg.db_conn * (2 ** 4))
         try:

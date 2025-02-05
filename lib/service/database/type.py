@@ -1,14 +1,39 @@
 import abc
-from typing import Any, Self, Protocol, Sequence
+from typing import Any, AsyncIterator, AsyncGenerator, Self, Protocol, Sequence, Optional
 
 from .config import DatabaseConfig
 
-class CursorLike(Protocol):
+class CopyLike(Protocol):
+    async def write_row(self: Self, row: Sequence[Any]) -> None:
+        ...
+
+    async def write(self: Self, buffer: bytes | str) -> None:
+        ...
+
+    async def read(self: Self) -> bytes:
+        ...
+
+    def rows(self: Self) -> AsyncIterator[tuple[Any, ...]]:
+        ...
+
+    async def read_row(self: Self) -> Optional[tuple[Any, ...]]:
+        ...
+
+    def __aiter__(self) -> AsyncGenerator[bytes, None]:
+        ...
+
     async def __aexit__(self: Self, *args, **kwargs):
-        pass
+        ...
 
     async def __aenter__(self: Self) -> Self:
-        pass
+        ...
+
+class CursorLike(Protocol):
+    async def __aexit__(self: Self, *args, **kwargs):
+        ...
+
+    async def __aenter__(self: Self) -> Self:
+        ...
 
     async def execute(self: Self, sql: str, args: Sequence[Any] = []) -> None:
         ...
@@ -20,6 +45,12 @@ class CursorLike(Protocol):
         ...
 
     async def fetchall(self: Self) -> list[list[Any]]:
+        ...
+
+    async def abort(self: Self):
+        ...
+
+    def copy(self: Self, statement: str, params: list[str] | None = None) -> CopyLike:
         ...
 
 class ConnectionLike(Protocol):
@@ -45,25 +76,18 @@ class ConnectionLike(Protocol):
     async def execute(self: Self, sql: str, args: Sequence[Any] = []) -> CursorLike:
         ...
 
-class DatabaseService(abc.ABC):
-    @abc.abstractmethod
+class DatabaseService(Protocol):
+    config: DatabaseConfig
+
     async def open(self: Self):
-        raise NotImplementedError()
+        ...
 
-    @abc.abstractmethod
     async def close(self: Self):
-        raise NotImplementedError()
+        ...
 
-    @abc.abstractmethod
     async def wait_till_running(self: Self, interval: int = 5, timeout: int = 60):
-        raise NotImplementedError()
+        ...
 
-    @abc.abstractmethod
     def async_connect(self: Self) -> ConnectionLike:
-        raise NotImplementedError()
-
-    @property
-    def config(self: Self) -> DatabaseConfig:
-        raise NotImplementedError()
-
+        ...
 

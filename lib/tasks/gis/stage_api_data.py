@@ -40,6 +40,7 @@ from lib.service.http import (
     ThrottledClientSession,
 )
 from lib.service.http.middleware.exp_backoff import BackoffConfig, RetryPreference
+from lib.service.uuid import *
 from lib.tooling.schema import SchemaController, SchemaDiscovery, SchemaCommand
 
 from .config import GisTaskConfig
@@ -69,6 +70,7 @@ def _parse_date_range(s: Optional[str], clock: ClockService) -> Optional[DateRan
 async def stage_gis_api_data(
     io: IoService,
     db: DatabaseService,
+    uuid: UuidService,
     clock: ClockService,
     conf: GisTaskConfig.StageApiData,
 ) -> None:
@@ -109,7 +111,7 @@ async def stage_gis_api_data(
         http_file_cache = None
         cache_cleaner = DisabledCacheCleaner()
     else:
-        http_file_cache = HttpLocalCache.create(io, 'gis')
+        http_file_cache = HttpLocalCache.create(io, uuid, 'gis')
         cache_cleaner = CacheCleaner(http_file_cache)
 
     projections: List[GisProjection] = []
@@ -161,13 +163,14 @@ async def run_in_console(
 ) -> None:
     io = IoServiceImpl.create(open_file_limit)
     db = DatabaseServiceImpl.create(db_config, config.db_workers)
+    uuid = UuidServiceImpl()
     clock = ClockService()
     controller = SchemaController(io, db, SchemaDiscovery.create(io))
     match config.db_mode:
         case 'write':
             await controller.command(SchemaCommand.Drop(ns='nsw_spatial'))
             await controller.command(SchemaCommand.Create(ns='nsw_spatial'))
-    await stage_gis_api_data(io, db, clock, config)
+    await stage_gis_api_data(io, db, uuid, clock, config)
 
 if __name__ == '__main__':
     import asyncio

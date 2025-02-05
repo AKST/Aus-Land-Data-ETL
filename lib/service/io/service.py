@@ -1,16 +1,16 @@
 import aiofiles
-from aiofiles.tempfile import NamedTemporaryFile
 import asyncio
 from dataclasses import dataclass
 import os
 from pathlib import Path
 import shutil
 import tarfile
+import tempfile
 from typing import Any, AsyncIterator, AsyncGenerator, Self, Tuple, List, Optional
 from zipfile import ZipFile
 
 from lib.utility.concurrent import NullableSemaphore, iterator_thread
-from .type import IoService, TmpFile
+from .type import IoService, TmpFile, FileWritter
 
 WalkItem = Tuple[str, List[str], List[str]]
 
@@ -38,8 +38,7 @@ class IoServiceImpl(IoService):
         await asyncio.to_thread(os.mkdir, dir_name)
 
     def mk_tmp_file(self: Self, mode: Optional[str] = None) -> TmpFile:
-        f = NamedTemporaryFile(mode) if mode else NamedTemporaryFile() # type: ignore
-        return TmpFileImpl(f, self)
+        return TmpFileImpl(self, None)
 
     async def grep_dir(self, dir_name: str, pattern: str) -> AsyncGenerator[str, None]:
         directory = Path(dir_name)
@@ -89,6 +88,9 @@ class IoServiceImpl(IoService):
                         break
                     yield chunk
 
+    def f_writter(self: Self, file_path: str) -> FileWritter:
+        return FileWritterImpl(aiofiles.open(file_path, mode='wb'), None)
+
     async def f_write(self, file_path: str, data: str):
         async with self._semaphore:
             async with aiofiles.open(file_path, 'w') as f:
@@ -130,19 +132,34 @@ class IoServiceImpl(IoService):
 
 @dataclass
 class TmpFileImpl(TmpFile):
-    _file: Any
     _io: IoService
+    _file: Any
 
     @property
     def name(self: Self) -> str:
         return self._file.name
 
     async def __aenter__(self: Self) -> Self:
-        await self.__aenter__()
+        self._file = await asyncio.to_thread(tempfile.NamedTemporaryFile().__enter__)
         return self
 
     async def __aexit__(self: Self, *args, **kwargs):
-        await self.__aexit__(*args, **kwargs)
+        await asyncio.to_thread(self._file.__exit__, *args)
+
+@dataclass
+class FileWritterImpl(FileWritter):
+    _cm: Any
+    _file: Any
+
+    async def write(self: Self, data: bytes) -> None:
+        await self._file.write(data)
+
+    async def __aenter__(self: Self) -> Self:
+        self._file = await self._cm.__aenter__()
+        return self
+
+    async def __aexit__(self: Self, *args, **kwargs):
+        await self._cm.__aexit__(*args, **kwargs)
 
 def _sync_unzip(zipfile: str, unzip_to: str):
     with ZipFile(zipfile, 'r') as z:

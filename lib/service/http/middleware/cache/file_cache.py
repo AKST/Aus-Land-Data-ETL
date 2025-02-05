@@ -171,6 +171,7 @@ class FileCacher:
 
     @staticmethod
     def create(io: IoService,
+               uuid: UuidService,
                cache_id: str | None,
                cache_dir: str | None = None,
                state_dir: str | None = None):
@@ -178,13 +179,12 @@ class FileCacher:
         state_dir = state_dir or './_out_state'
         state_path = f"{state_dir}/{cache_id or 'http'}-cache.json"
         clock = ClockService()
-        uuid = UuidService()
         factory = RequestCacheFactory(cache_dir=cache_dir)
         return FileCacher(save_dir=cache_dir,
                           config_path=state_path,
                           rc_factory=factory,
                           io=io,
-                          uuid=UuidService(),
+                          uuid=uuid,
                           clock=ClockService())
 
 _date_format = '%Y-%m-%d %H:%M:%S'
