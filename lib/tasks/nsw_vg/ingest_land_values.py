@@ -20,7 +20,7 @@ from lib.pipeline.nsw_vg.land_values import (
     NswVgLvWorkerClient,
 )
 from lib.service.clock import ClockService
-from lib.service.io import IoService
+from lib.service.io import IoService, IoServiceImpl
 from lib.service.database import *
 from lib.service.http import AbstractClientSession
 from lib.service.static_environment import StaticEnvironmentInitialiser
@@ -34,7 +34,7 @@ _ZIPDIR = './_out_zip'
 async def cli_main(cfg: NswVgTaskConfig.LandValue.Main) -> None:
     soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
     file_limit = int(soft_limit * 0.8)
-    io = IoService.create(file_limit)
+    io = IoServiceImpl.create(file_limit)
     db = DatabaseServiceImpl.create(cfg.child_cfg.db_config, 1)
     clock = ClockService()
 
@@ -98,7 +98,7 @@ def spawn_worker(id: int,
 
     async def runloop() -> None:
         logger = logging.getLogger(f'{__name__}.spawn')
-        io = IoService.create(file_limit)
+        io = IoServiceImpl.create(file_limit)
         db = DatabaseServiceImpl.create(cfg.db_config, cfg.db_conn)
         ingestion = NswVgLvIngestion(cfg.chunk_size, io, db)
         coordinator = NswVgLvCoordinatorClient(recv_q=recv_q, send_q=send_q)

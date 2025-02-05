@@ -177,7 +177,7 @@ def expr_as_op(expr: Expression) -> Optional[Stmt.Op]:
             s_name, t_name = get_identifiers(id_info.this)
             return Stmt.CreateFunction(expr, s_name, t_name)
         case sql_expr.Command(this="CREATE", expression=e):
-            match re.findall(f'\w+', e.lower()):
+            match re.findall(r'\w+', e.lower()):
                 case ['function', *_]:
                     return create_function(expr, e)
                 case ['or', 'replace', 'function', *_]:

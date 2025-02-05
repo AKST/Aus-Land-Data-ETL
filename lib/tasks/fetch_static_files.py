@@ -9,7 +9,7 @@ from lib.pipeline.abs.defaults import (
 from lib.pipeline.gnaf import GnafPublicationDiscovery
 from lib.pipeline.nsw_vg.defaults import THROTTLE_CONFIG
 from lib.pipeline.nsw_vg.discovery import WeeklySalePriceDiscovery, AnnualSalePriceDiscovery, LandValueDiscovery
-from lib.service.io import IoService
+from lib.service.io import IoService, IoServiceImpl
 from lib.service.http import AbstractClientSession, ClientSession, CachedClientSession, ExpBackoffClientSession, ThrottledClientSession
 from lib.service.http import BackoffConfig, RetryPreference
 from lib.service.http.middleware.cache import HttpLocalCache
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     file_limit = int(file_limit * 0.8)
 
     async def main():
-        io_service = IoService.create(file_limit)
+        io_service = IoServiceImpl.create(file_limit)
         async with get_session(io_service) as session:
             await initialise(io_service, session)
 

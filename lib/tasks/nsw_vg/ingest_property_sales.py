@@ -16,7 +16,7 @@ from lib.pipeline.nsw_vg.property_sales.file_format import PropertySalesRowParse
 from lib.pipeline.nsw_vg.property_sales.ingestion import NSW_VG_PS_INGESTION_CONFIG, PropertySalesIngestion
 from lib.pipeline.nsw_vg.property_sales.orchestration import *
 from lib.service.clock import ClockService
-from lib.service.io import IoService
+from lib.service.io import IoService, IoServiceImpl
 from lib.service.database import *
 from lib.utility.sampling import Sampler, SamplingConfig
 
@@ -102,7 +102,7 @@ async def _child_main(
         resource.setrlimit(resource.RLIMIT_NOFILE, (soft_limit, hard_limit))
 
     file_limit = int(soft_limit * 0.8)
-    io = IoService.create(file_limit - config.db_pool_size)
+    io = IoServiceImpl.create(file_limit - config.db_pool_size)
     clock = ClockService()
     db = DatabaseServiceImpl.create(config.db_config, config.db_pool_size)
 
@@ -157,7 +157,7 @@ async def _cli_main(
     from ..fetch_static_files import get_session, initialise
 
     clock = ClockService()
-    io = IoService.create(file_limit)
+    io = IoServiceImpl.create(file_limit)
     db = DatabaseServiceImpl.create(db_config, 1)
 
     async with get_session(io, 'psi') as session:

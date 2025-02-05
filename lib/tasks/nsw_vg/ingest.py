@@ -4,7 +4,7 @@ import logging
 
 from lib.service.clock import ClockService
 from lib.service.database import *
-from lib.service.io import IoService
+from lib.service.io import IoService, IoServiceImpl
 from lib.tasks.fetch_static_files import get_session
 
 from ..fetch_static_files import Environment, get_session, initialise
@@ -192,7 +192,7 @@ if __name__ == '__main__':
         config: NswVgTaskConfig.Ingestion,
     ) -> None:
         clock = ClockService()
-        io = IoService.create(file_limit)
+        io = IoServiceImpl.create(file_limit)
         db = DatabaseServiceImpl.create(
             parent_db_config,
             parent_db_pool_limit,

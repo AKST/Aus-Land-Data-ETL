@@ -30,7 +30,7 @@ from lib.pipeline.gis import (
     YearMonth,
 )
 from lib.service.database import *
-from lib.service.io import IoService
+from lib.service.io import IoService, IoServiceImpl
 from lib.service.clock import ClockService
 from lib.service.http import (
     CachedClientSession,
@@ -159,7 +159,7 @@ async def run_in_console(
     db_config: DatabaseConfig,
     config: GisTaskConfig.StageApiData,
 ) -> None:
-    io = IoService.create(open_file_limit)
+    io = IoServiceImpl.create(open_file_limit)
     db = DatabaseServiceImpl.create(db_config, config.db_workers)
     clock = ClockService()
     controller = SchemaController(io, db, SchemaDiscovery.create(io))

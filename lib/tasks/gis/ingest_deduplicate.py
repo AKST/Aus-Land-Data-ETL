@@ -3,7 +3,7 @@ from typing import List
 
 from lib.service.clock import ClockService
 from lib.service.database import *
-from lib.service.io import IoService
+from lib.service.io import IoService, IoServiceImpl
 from lib.tooling.schema import SchemaCommand, SchemaController, SchemaDiscovery
 from lib.utility.format import fmt_time_elapsed
 
@@ -89,7 +89,7 @@ if __name__ == '__main__':
 
     async def _cli_main() -> None:
         clock = ClockService()
-        io = IoService.create(None)
+        io = IoServiceImpl.create(None)
         db = DatabaseServiceImpl.create(db_config, 1)
         try:
             await db.open()

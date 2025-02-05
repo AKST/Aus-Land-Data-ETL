@@ -3,7 +3,7 @@ import pytest
 from pprint import pformat
 from typing import Any
 
-from lib.service.io import IoService
+from lib.service.io import IoServiceImpl
 
 from ..parse import (
     parse_codelist_meta,
@@ -18,7 +18,7 @@ from ..parse import (
     'C21_T17_SA2',
 ])
 async def test_parse_data_all_dimensions_snapshot(snapshot, dataflow_id: str):
-    io = IoService.create(1)
+    io = IoServiceImpl.create(1)
     name = f'absapi_data_{dataflow_id}-*-_T-AUS-*-*.json'
     resp = json.loads(await io.f_read(f'./_fixtures/{name}'))
     data = parse_data_all_dimensions(resp)
@@ -32,7 +32,7 @@ async def test_parse_data_all_dimensions_snapshot(snapshot, dataflow_id: str):
     ('C21_T17_SA2', 'datastructure'),
 ])
 async def test_parse_metadata(snapshot, dataflow_id: str, structure: str):
-    io = IoService.create(1)
+    io = IoServiceImpl.create(1)
 
     data_nesting = ''
     parse_f: Any = None

@@ -3,7 +3,7 @@ from pprint import pformat
 from datetime import datetime
 
 from lib.pipeline.nsw_vg.property_sales.data import PropertySaleDatFileMetaData
-from lib.service.io import IoService
+from lib.service.io import IoServiceImpl
 
 from ..text_source import *
 from ..parse import PropertySalesRowParserFactory
@@ -20,7 +20,7 @@ from ..parse import PropertySalesRowParserFactory
 async def test_end_to_end(file_name: str,
                           published_year: int,
                           download_date: datetime | None):
-    io = IoService.create(1)
+    io = IoServiceImpl.create(1)
     s_factory = PropertySalesRowParserFactory(io,
                                               StringTextSource)
     b_factory = PropertySalesRowParserFactory(io,
@@ -53,7 +53,7 @@ async def test_snapshot(snapshot,
                         file_name: str,
                         published_year: int,
                         download_date: datetime | None):
-    io = IoService.create(1)
+    io = IoServiceImpl.create(1)
     s_factory = PropertySalesRowParserFactory(io,
                                               StringTextSource)
     b_factory = PropertySalesRowParserFactory(io,

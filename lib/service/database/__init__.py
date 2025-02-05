@@ -1,10 +1,10 @@
-from .service import (
+from .config import DatabaseConfig
+from .service import DatabaseServiceImpl
+from .type import (
     DatabaseService,
-    DatabaseServiceImpl,
     CursorLike as DbCursorLike,
     ConnectionLike as DbConnectionLike,
 )
-from .config import *
 from .util import *
 
 from psycopg.errors import Error as PgClientException

@@ -10,10 +10,11 @@ from typing import Any, AsyncIterator, AsyncGenerator, Self, Tuple, List, Option
 from zipfile import ZipFile
 
 from lib.utility.concurrent import NullableSemaphore, iterator_thread
+from .type import IoService, TmpFile
 
 WalkItem = Tuple[str, List[str], List[str]]
 
-class IoService:
+class IoServiceImpl(IoService):
     """
     This exists for the purpose of making io straight
     forward to mock in tests, but also ensuring I don't
@@ -25,9 +26,9 @@ class IoService:
         self._semaphore = semaphore
 
     @staticmethod
-    def create(file_limit: int | None) -> 'IoService':
+    def create(file_limit: int | None) -> 'IoServiceImpl':
         semaphore = asyncio.Semaphore(file_limit) if file_limit else None
-        return IoService(NullableSemaphore(semaphore, disabled=False))
+        return IoServiceImpl(NullableSemaphore(semaphore, disabled=False))
 
     async def extract_zip(self, zipfile: str, unzip_to: str) -> None:
         async with self._semaphore:
@@ -36,9 +37,9 @@ class IoService:
     async def mk_dir(self, dir_name: str):
         await asyncio.to_thread(os.mkdir, dir_name)
 
-    def mk_tmp_file(self: Self, mode: Optional[str] = None) -> 'TmpFile':
+    def mk_tmp_file(self: Self, mode: Optional[str] = None) -> TmpFile:
         f = NamedTemporaryFile(mode) if mode else NamedTemporaryFile() # type: ignore
-        return TmpFile(f, self)
+        return TmpFileImpl(f, self)
 
     async def grep_dir(self, dir_name: str, pattern: str) -> AsyncGenerator[str, None]:
         directory = Path(dir_name)
@@ -128,7 +129,7 @@ class IoService:
         await loop.run_in_executor(None, create_tar_sync)
 
 @dataclass
-class TmpFile:
+class TmpFileImpl(TmpFile):
     _file: Any
     _io: IoService
 

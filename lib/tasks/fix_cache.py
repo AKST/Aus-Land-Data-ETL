@@ -1,7 +1,7 @@
 from functools import reduce
 import json
 from typing import Any, Dict, List, Set, Tuple
-from lib.service.io import IoService
+from lib.service.io import IoService, IoServiceImpl
 
 _CACHE_STATE = './_out_state/http-cache.json'
 _CACHE_DIR = '_out_cache'
@@ -63,6 +63,6 @@ if __name__ == '__main__':
     file_limit, _ = resource.getrlimit(resource.RLIMIT_NOFILE)
     file_limit = int(file_limit * 0.8)
 
-    io = IoService.create(file_limit)
+    io = IoServiceImpl.create(file_limit)
     asyncio.run(fix_cache(io))
 

@@ -1,6 +1,6 @@
 import logging
 
-from lib.service.io import IoService
+from lib.service.io import IoService, IoServiceImpl
 from lib.service.database import DatabaseServiceImpl, DatabaseService, DatabaseConfig
 
 from lib.tooling.schema import (
@@ -28,7 +28,7 @@ async def clean_staging_data(db: DatabaseService, io: IoService):
 
 async def _main(db_cfg: DatabaseConfig):
     db = DatabaseServiceImpl.create(db_cfg, 1)
-    io = IoService.create(None)
+    io = IoServiceImpl.create(None)
     await clean_staging_data(db, io)
 
 if __name__ == '__main__':

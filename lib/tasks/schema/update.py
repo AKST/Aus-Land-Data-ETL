@@ -4,7 +4,7 @@ from typing import List, Dict
 from sys import maxsize
 
 from lib.service.database import DatabaseServiceImpl, DatabaseService
-from lib.service.io import IoService
+from lib.service.io import IoService, IoServiceImpl
 from lib.tooling.schema import SchemaController, SchemaDiscovery, SchemaCommand
 from lib.tooling.schema.config import ns_dependency_order, schema_ns
 from lib.tooling.schema.type import SchemaNamespace
@@ -127,7 +127,7 @@ if __name__ == '__main__':
 
 
     async def main(f) -> None:
-        io = IoService.create(file_limit)
+        io = IoServiceImpl.create(file_limit)
         db = DatabaseServiceImpl.create(db_conf, 1)
         try:
             await db.open()
