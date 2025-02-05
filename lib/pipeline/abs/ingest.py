@@ -5,7 +5,7 @@ from multiprocessing import Process
 from typing import List, Self, Type
 import pandas as pd
 
-from lib.service.database import DatabaseService, DatabaseConfig
+from lib.service.database import *
 from lib.utility.df import prepare_postgis_insert
 
 from .config import AbsIngestionConfig, AbsWorkerConfig, WorkerArgs, IngestionSource
@@ -112,7 +112,7 @@ class AbsIngestionWorker:
             config_logging(args.worker, worker_c.enable_logging_debug)
 
         async def start():
-            db = DatabaseService.create(worker_c.db_config, worker_c.db_connections)
+            db = DatabaseServiceImpl.create(worker_c.db_config, worker_c.db_connections)
             worker = AbsIngestionWorker(db, args.source_root_dir)
             try:
                 await db.open()

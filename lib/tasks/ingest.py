@@ -25,6 +25,7 @@ from lib.tasks.nsw_vg.ingest import ingest_nswvg
 from lib.tasks.schema.count import run_count_for_schemas
 from lib.tasks.schema.update import update_schema, UpdateSchemaConfig
 from lib.tasks.schema.clean_staging import clean_staging_data
+from lib.tasks.schema.partition import config_partitions, ConfigPartitionsCfg
 from lib.tooling.schema.config import ns_dependency_order
 from lib.utility.format import fmt_time_elapsed
 
@@ -76,6 +77,12 @@ async def ingest_all(config: IngestConfig):
 
     await update_schema(
         UpdateSchemaConfig(packages=ns_dependency_order, range=None, apply=True),
+        db_service,
+        io_service,
+    )
+
+    await config_partitions(
+        ConfigPartitionsCfg(partitions=16),
         db_service,
         io_service,
     )

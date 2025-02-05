@@ -51,21 +51,3 @@ CREATE INDEX idx_land_value_row_pk
     ON nsw_vg_raw.land_value_row(property_id, source_date);
 CREATE INDEX idx_land_value_row_source_file_name
     ON nsw_vg_raw.land_value_row(source_file_name);
-
-CREATE TABLE nsw_vg_raw.land_value_row_p0 PARTITION OF nsw_vg_raw.land_value_row
-    FOR VALUES WITH (MODULUS 8, REMAINDER 0);
-CREATE TABLE nsw_vg_raw.land_value_row_p1 PARTITION OF nsw_vg_raw.land_value_row
-    FOR VALUES WITH (MODULUS 8, REMAINDER 1);
-CREATE TABLE nsw_vg_raw.land_value_row_p2 PARTITION OF nsw_vg_raw.land_value_row
-    FOR VALUES WITH (MODULUS 8, REMAINDER 2);
-CREATE TABLE nsw_vg_raw.land_value_row_p3 PARTITION OF nsw_vg_raw.land_value_row
-    FOR VALUES WITH (MODULUS 8, REMAINDER 3);
-CREATE TABLE nsw_vg_raw.land_value_row_p4 PARTITION OF nsw_vg_raw.land_value_row
-    FOR VALUES WITH (MODULUS 8, REMAINDER 4);
-CREATE TABLE nsw_vg_raw.land_value_row_p5 PARTITION OF nsw_vg_raw.land_value_row
-    FOR VALUES WITH (MODULUS 8, REMAINDER 5);
-CREATE TABLE nsw_vg_raw.land_value_row_p6 PARTITION OF nsw_vg_raw.land_value_row
-    FOR VALUES WITH (MODULUS 8, REMAINDER 6);
-CREATE TABLE nsw_vg_raw.land_value_row_p7 PARTITION OF nsw_vg_raw.land_value_row
-    FOR VALUES WITH (MODULUS 8, REMAINDER 7);
-
