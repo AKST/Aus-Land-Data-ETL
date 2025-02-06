@@ -14,7 +14,6 @@ CREATE UNIQUE INDEX nsw_vg_valuation_district_unique_name
 
 CREATE TABLE IF NOT EXISTS nsw_vg.land_valuation (
   LIKE meta.event INCLUDING ALL,
-  valuation_id SERIAL PRIMARY KEY,
   valuation_district_code INT NOT NULL,
   property_id INT NOT NULL,
 
@@ -48,9 +47,9 @@ CREATE TABLE IF NOT EXISTS nsw_vg.land_valuation (
 
   land_value float NOT NULL,
 
-  UNIQUE (effective_date, valuation_base_date, property_id),
+  PRIMARY KEY (property_id, effective_date),
   FOREIGN KEY (property_id) REFERENCES nsw_lrs.property(property_id),
-);
+) PARTITION BY HASH (property_id);
 
 CREATE INDEX idx_property_id_land_valuation
     ON nsw_vg.land_valuation(property_id);
