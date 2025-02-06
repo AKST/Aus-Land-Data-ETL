@@ -3,21 +3,16 @@ from sqlglot import expressions, Expression
 from typing import Dict, Iterator, List, Optional, Set, Tuple, Type
 
 from lib.service.database import DbCursorLike
-from ..type import Stmt, SchemaSyntax, EntityKind
-
-def _id(schema: Optional[str], name: str) -> str:
-    match schema:
-        case None: return name
-        case schema: return f'{schema}.{name}'
+from ..type import Ref, Stmt, SchemaSyntax, EntityKind
 
 def create(commands: SchemaSyntax, omit_foreign_keys: bool) -> Iterator[str]:
     for operation in commands.operations:
         match operation:
             case Stmt.CreateSchema(expr, schema_name):
                 yield expr.sql(dialect='postgres')
-            case Stmt.CreateType(expr, schema_name, name):
+            case Stmt.CreateType(expr, Ref(schema_name, name)):
                 yield expr.sql(dialect='postgres')
-            case Stmt.CreateTable(expr, schema_name, name):
+            case Stmt.CreateTable(expr, Ref(schema_name, name)):
                 copy = expr.copy()
                 if omit_foreign_keys:
                     copy.this.set('expressions', [
@@ -26,13 +21,13 @@ def create(commands: SchemaSyntax, omit_foreign_keys: bool) -> Iterator[str]:
                         if not isinstance(sub_expr, expressions.ForeignKey)
                     ])
                 yield copy.sql(dialect='postgres')
-            case Stmt.CreateTablePartition(expr, schema_name, name):
+            case Stmt.CreateTablePartition(expr, Ref(schema_name, name)):
                 yield expr.sql(dialect='postgres')
-            case Stmt.CreateFunction(expr, schema_name, name):
+            case Stmt.CreateFunction(expr, Ref(schema_name, name)):
                 yield expr.sql(dialect='postgres')
             case Stmt.CreateIndex(expr, name):
                 yield expr.sql(dialect='postgres')
-            case Stmt.CreateView(expr, schema_name, name):
+            case Stmt.CreateView(expr, Ref(schema_name, name)):
                 yield expr.sql(dialect='postgres')
             case Stmt.OpaqueDoBlock(expr):
                 yield expr.sql(dialect='postgres')
@@ -46,19 +41,19 @@ def drop(commands: SchemaSyntax, cascade: bool = False) -> Iterator[str]:
         match operation:
             case Stmt.CreateSchema(expr, schema_name):
                 yield f'DROP SCHEMA IF EXISTS {schema_name}{sfx}'
-            case Stmt.CreateType(expr, schema_name, name):
-                yield f'DROP TYPE IF EXISTS {_id(schema_name, name)}{sfx}'
-            case Stmt.CreateTable(expr, schema_name, name):
-                yield f'DROP TABLE IF EXISTS {_id(schema_name, name)}{sfx}'
-            case Stmt.CreateFunction(expr, schema_name, name):
-                yield f'DROP FUNCTION IF EXISTS {_id(schema_name, name)}{sfx}'
-            case Stmt.CreateTablePartition(expr, schema_name, name):
-                yield f'DROP TABLE IF EXISTS {_id(schema_name, name)}{sfx}'
+            case Stmt.CreateType(expr, ref):
+                yield f'DROP TYPE IF EXISTS {str(ref)}{sfx}'
+            case Stmt.CreateTable(expr, ref):
+                yield f'DROP TABLE IF EXISTS {str(ref)}{sfx}'
+            case Stmt.CreateFunction(expr, ref):
+                yield f'DROP FUNCTION IF EXISTS {str(ref)}{sfx}'
+            case Stmt.CreateTablePartition(expr, ref):
+                yield f'DROP TABLE IF EXISTS {str(ref)}{sfx}'
             case Stmt.CreateIndex(expr, name):
                 yield f'DROP INDEX IF EXISTS {name}'
-            case Stmt.CreateView(expr, schema_name, name, materialized):
+            case Stmt.CreateView(expr, ref, materialized):
                 kind = 'MATERIALIZED VIEW' if materialized else 'view'
-                yield f'DROP {kind} IF EXISTS {_id(schema_name, name)}{sfx}'
+                yield f'DROP {kind} IF EXISTS {str(ref)}{sfx}'
             case Stmt.OpaqueDoBlock(expr):
                 continue
             case other:
@@ -71,17 +66,17 @@ def truncate(commands: SchemaSyntax, cascade: bool = False) -> Iterator[str]:
         match operation:
             case Stmt.CreateSchema(expr, schema_name):
                 continue
-            case Stmt.CreateType(expr, schema_name, name):
+            case Stmt.CreateType(expr, ref):
                 continue
-            case Stmt.CreateTable(expr, schema_name, name):
-                yield f'TRUNCATE TABLE {_id(schema_name, name)}{sfx}'
-            case Stmt.CreateTablePartition(expr, schema_name, name):
-                yield f'TRUNCATE TABLE {_id(schema_name, name)}{sfx}'
-            case Stmt.CreateFunction(expr, schema_name, name):
+            case Stmt.CreateTable(expr, ref):
+                yield f'TRUNCATE TABLE {str(ref)}{sfx}'
+            case Stmt.CreateTablePartition(expr, ref):
+                yield f'TRUNCATE TABLE {str(ref)}{sfx}'
+            case Stmt.CreateFunction(expr, ref):
                 continue
             case Stmt.CreateIndex(expr, name):
                 continue
-            case Stmt.CreateView(expr, schema_name, name, materialized):
+            case Stmt.CreateView(expr, ref, materialized):
                 continue
             case Stmt.OpaqueDoBlock(expr):
                 continue
@@ -93,23 +88,22 @@ def add_foreign_keys(contents: SchemaSyntax) -> Iterator[str]:
         match operation:
             case Stmt.CreateSchema(expr, schema_name):
                 continue
-            case Stmt.CreateType(expr, schema_name, name):
+            case Stmt.CreateType(expr, ref):
                 continue
             case Stmt.CreateIndex(expr, name):
                 continue
-            case Stmt.CreateTable(expr, schema_name, name):
-                t_name = _id(schema_name, name)
+            case Stmt.CreateTable(expr, ref):
                 for col, rel, rel_col in _table_foreign_keys(expr):
                     yield f"ALTER TABLE {
-                        t_name
+                        str(rel)
                     } ADD CONSTRAINT fk_{
                         col
                     } FOREIGN KEY ({col}) REFERENCES {rel}({rel_col});"
-            case Stmt.CreateTablePartition(expr, schema_name, name):
+            case Stmt.CreateTablePartition(expr, ref):
                 continue
-            case Stmt.CreateFunction(expr, schema_name, name):
+            case Stmt.CreateFunction(expr, ref):
                 continue
-            case Stmt.CreateView(expr, schema_name, name, materialized):
+            case Stmt.CreateView(expr, ref, materialized):
                 continue
             case Stmt.OpaqueDoBlock(expr):
                 continue
@@ -122,18 +116,18 @@ def reindex(commands: SchemaSyntax, allowed: Set[EntityKind]):
             case Stmt.CreateSchema(expr, schema_name):
                 if 'schema' in allowed:
                     yield f'REINDEX SCHEMA {schema_name}'
-            case Stmt.CreateType(expr, schema_name, name):
+            case Stmt.CreateType(expr, ref):
                 continue
-            case Stmt.CreateTable(expr, schema_name, name):
+            case Stmt.CreateTable(expr, ref):
                 if 'table' in allowed:
-                    yield f'REINDEX TABLE {_id(schema_name, name)}'
-            case Stmt.CreateTablePartition(expr, schema_name, name):
+                    yield f'REINDEX TABLE {str(ref)}'
+            case Stmt.CreateTablePartition(expr, ref):
                 continue
-            case Stmt.CreateFunction(expr, schema_name, name):
+            case Stmt.CreateFunction(expr, ref):
                 continue
             case Stmt.CreateIndex(expr, name):
                 continue
-            case Stmt.CreateView(expr, schema_name, name, materialized):
+            case Stmt.CreateView(expr, ref, materialized):
                 continue
             case Stmt.OpaqueDoBlock(expr):
                 continue
@@ -166,11 +160,11 @@ async def make_fk_map(contents: SchemaSyntax, cursor: DbCursorLike) -> FkMap:
         match operation:
             case Stmt.CreateSchema(expr, schema_name):
                 out[(Stmt.CreateSchema, schema_name)] = None
-            case Stmt.CreateType(expr, schema_name, name):
-                out[(Stmt.CreateType, _id(schema_name, name))] = None
+            case Stmt.CreateType(expr, ref):
+                out[(Stmt.CreateType, str(ref))] = None
             case Stmt.CreateIndex(expr, name):
                 out[(Stmt.CreateIndex, name)] = None
-            case Stmt.CreateTable(expr, schema_name, name):
+            case Stmt.CreateTable(expr, Ref(schema_name, name)):
                 args: Tuple[str] | Tuple[str, str]
                 if schema_name:
                     query = query_with_ns
@@ -179,17 +173,17 @@ async def make_fk_map(contents: SchemaSyntax, cursor: DbCursorLike) -> FkMap:
                     query = query_without_ns
                     args = (name,)
                 await cursor.execute(query, args)
-                out[(Stmt.CreateTable, _id(schema_name, name))] = {
+                out[(Stmt.CreateTable, str(ref))] = {
                     (col, rel, rel_col): name
                     for name, col, rel, rel_col in await cursor.fetchall()
                 }
                 result = await cursor.fetchall()
-            case Stmt.CreateTablePartition(expr, schema_name, name):
-                out[(Stmt.CreateTablePartition, _id(schema_name, name))] = None
-            case Stmt.CreateFunction(expr, schema_name, name):
-                out[(Stmt.CreateFunction, _id(schema_name, name))] = None
-            case Stmt.CreateView(expr, schema_name, name, materialized):
-                out[(Stmt.CreateView, name)] = None
+            case Stmt.CreateTablePartition(expr, ref):
+                out[(Stmt.CreateTablePartition, str(ref))] = None
+            case Stmt.CreateFunction(expr, ref):
+                out[(Stmt.CreateFunction, str(ref))] = None
+            case Stmt.CreateView(expr, ref, materialized):
+                out[(Stmt.CreateView, str(ref))] = None
             case Stmt.OpaqueDoBlock(expr):
                 continue
             case other:
@@ -201,21 +195,21 @@ def remove_foreign_keys(contents: SchemaSyntax, table_fks: FkMap) -> Iterator[st
         match operation:
             case Stmt.CreateSchema(expr, schema_name):
                 continue
-            case Stmt.CreateType(expr, schema_name, name):
+            case Stmt.CreateType(expr, ref):
                 continue
             case Stmt.CreateIndex(expr, name):
                 continue
-            case Stmt.CreateTable(expr, schema_name, name):
-                t_name = _id(schema_name, name)
+            case Stmt.CreateTable(expr, ref):
+                t_name = str(ref)
                 t_fkmap = table_fks[(Stmt.CreateTable, t_name)]
                 yield from [
                     f"ALTER TABLE {t_name} DROP CONSTRAINT IF EXISTS {t_fkmap[fk]};"
                     for fk in _table_foreign_keys(expr)
                     if t_fkmap and fk in t_fkmap
                 ]
-            case Stmt.CreateTablePartition(expr, schema_name, name):
+            case Stmt.CreateTablePartition(expr, ref):
                 continue
-            case Stmt.CreateView(expr, schema_name, name, materialized):
+            case Stmt.CreateView(expr, ref, materialized):
                 continue
             case Stmt.OpaqueDoBlock(expr):
                 continue

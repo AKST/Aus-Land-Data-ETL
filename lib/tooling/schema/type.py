@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from os.path import join as join_path
 from sqlglot import Expression
-from typing import Dict, List, Literal, Optional, Self, Set
+from typing import Literal, Optional, Self
 
 EntityKind = Literal['table', 'schema']
 
@@ -30,7 +30,7 @@ class Command:
 
     @dataclass
     class ReIndex(BaseCommand):
-        allowed: Set[EntityKind] = field(default_factory=lambda: set())
+        allowed: set[EntityKind] = field(default_factory=lambda: set())
 
     @dataclass
     class AddForeignKeys(BaseCommand):
@@ -48,6 +48,16 @@ class Command:
     class Truncate(BaseCommand):
         cascade: bool = field(default=False)
 
+@dataclass
+class Ref:
+    schema_name: Optional[str]
+    name: str
+
+    def __str__(self: Self) -> str:
+        match self.schema_name:
+            case None: return self.name
+            case schema: return f'{schema}.{self.name}'
+
 class Stmt:
     @dataclass
     class Op:
@@ -63,29 +73,24 @@ class Stmt:
 
     @dataclass
     class CreateTable(Op):
-        schema_name: Optional[str]
-        table_name: str
+        table: Ref
 
     @dataclass
     class CreateTablePartition(Op):
-        schema_name: Optional[str]
-        paritition_name: str
+        partition: Ref
 
     @dataclass
     class CreateView(Op):
-        schema_name: Optional[str]
-        view_name: str
+        view: Ref
         materialized: bool
 
     @dataclass
     class CreateType(Op):
-        schema_name: Optional[str]
-        type_name: str
+        type: Ref
 
     @dataclass
     class CreateFunction(Op):
-        schema_name: Optional[str]
-        type_name: str
+        func: Ref
 
     @dataclass
     class CreateIndex(Op):
@@ -97,8 +102,8 @@ class Stmt:
 
 @dataclass
 class SchemaSyntax:
-    expr_tree: List[Expression] = field(repr=False)
-    operations: List[Stmt.Op]
+    expr_tree: list[Expression] = field(repr=False)
+    operations: list[Stmt.Op]
 
     @property
     def can_be_used_in_transaction(self: Self) -> bool:
@@ -131,4 +136,4 @@ class SqlFileMetaData:
         f_name = f'{step_s}_APPLY{suffix}.sql'
         return join_path(self.root_dir, self.ns, 'schema', f_name)
 
-SchemaSteps = Dict[SchemaNamespace, List[SqlFileMetaData]]
+SchemaSteps = dict[SchemaNamespace, list[SqlFileMetaData]]

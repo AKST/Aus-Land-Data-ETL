@@ -1,1 +1,1 @@
-SchemaSyntax(operations=[Stmt.CreateFunction(schema_name='a', type_name='c')])
+SchemaSyntax(operations=[Stmt.CreateFunction(func=Ref(schema_name='a', name='c'))])

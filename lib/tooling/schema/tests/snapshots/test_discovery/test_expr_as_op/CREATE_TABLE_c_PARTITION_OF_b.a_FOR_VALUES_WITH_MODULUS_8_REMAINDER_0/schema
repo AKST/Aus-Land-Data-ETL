@@ -1,1 +1,1 @@
-SchemaSyntax(operations=[Stmt.CreateTablePartition(schema_name=None, paritition_name='c')])
+SchemaSyntax(operations=[Stmt.CreateTablePartition(partition=Ref(schema_name=None, name='c'))])

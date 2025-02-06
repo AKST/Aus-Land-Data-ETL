@@ -19,7 +19,7 @@ from lib.utility.concurrent import fmap
 from lib.utility.iteration import partition
 
 from .config import schema_ns
-from .type import Stmt, SchemaNamespace, SqlFileMetaData, SchemaSyntax, SchemaSteps
+from .type import Stmt, SchemaNamespace, SqlFileMetaData, SchemaSyntax, SchemaSteps, Ref
 
 @dataclass
 class _FileMeta:
@@ -149,7 +149,7 @@ def create_function(expr: Expression, command_e: str) -> Stmt.Op:
         raise TypeError(f'unknown {repr(expr)}')
     s_name = match.group(1) if match.group(1) else None
     t_name = match.group(2)
-    return Stmt.CreateFunction(expr, s_name, t_name)
+    return Stmt.CreateFunction(expr, Ref(s_name, t_name))
 
 def expr_as_op(expr: Expression) -> Optional[Stmt.Op]:
     match expr:
@@ -163,19 +163,19 @@ def expr_as_op(expr: Expression) -> Optional[Stmt.Op]:
             ))
             t_name = schema.this.this
             s_name = schema.db or None
-            return Stmt.CreateView(expr, s_name, t_name, materialized)
+            return Stmt.CreateView(expr, Ref(s_name, t_name), materialized)
         case sql_expr.Create(kind="TABLE", this=id_info) if is_create_partition(expr):
             s_name, p_name = get_identifiers(id_info)
-            return Stmt.CreateTablePartition(expr, s_name, p_name)
+            return Stmt.CreateTablePartition(expr, Ref(s_name, p_name))
         case sql_expr.Create(kind="TABLE", this=id_info):
             s_name, t_name = get_identifiers(id_info)
-            return Stmt.CreateTable(expr, s_name, t_name)
+            return Stmt.CreateTable(expr, Ref(s_name, t_name))
         case sql_expr.Create(kind="INDEX", this=schema):
             t_name = schema.this.this
             return Stmt.CreateIndex(expr, t_name)
         case sql_expr.Create(kind="FUNCTION", this=id_info):
             s_name, t_name = get_identifiers(id_info.this)
-            return Stmt.CreateFunction(expr, s_name, t_name)
+            return Stmt.CreateFunction(expr, Ref(s_name, t_name))
         case sql_expr.Command(this="CREATE", expression=e):
             match re.findall(r'\w+', e.lower()):
                 case ['function', *_]:
@@ -183,9 +183,9 @@ def expr_as_op(expr: Expression) -> Optional[Stmt.Op]:
                 case ['or', 'replace', 'function', *_]:
                     return create_function(expr, e)
                 case ['type', s_name, t_name, 'as', *_]:
-                    return Stmt.CreateType(expr, s_name, t_name)
+                    return Stmt.CreateType(expr, Ref(s_name, t_name))
                 case ['type', t_name, 'as', *_]:
-                    return Stmt.CreateType(expr, None, t_name)
+                    return Stmt.CreateType(expr, Ref(None, t_name))
                 case other:
                     print(repr(e))
                     raise TypeError(f'unknown command {repr(other)}')

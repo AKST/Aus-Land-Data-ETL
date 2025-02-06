@@ -37,15 +37,15 @@ def test_expr_as_op(snapshot, sql: str):
 def test_create_function_name_and_namespace(sql):
     schema = sql_as_operations(sql)
     create_function = next(o for o in schema.operations)
-    assert create_function.schema_name == 'a'
-    assert create_function.type_name == 'c'
+    assert create_function.func.schema_name == 'a'
+    assert create_function.func.name == 'c'
 
 def test_schema_for_parition():
     sql = \
         "CREATE TABLE a.c PARTITION OF b.a FOR VALUES WITH (MODULUS 8, REMAINDER 0)"
     schema = sql_as_operations(sql)
     create_parition = next(o for o in schema.operations)
-    assert create_parition.schema_name == 'a'
+    assert create_parition.partition.schema_name == 'a'
 
 def test_normal_index():
     sql = "CREATE INDEX idx_a ON a (id)"

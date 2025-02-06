@@ -1,1 +1,1 @@
-SchemaSyntax(operations=[Stmt.CreateType(schema_name='s', type_name='abc')])
+SchemaSyntax(operations=[Stmt.CreateType(type=Ref(schema_name='s', name='abc'))])

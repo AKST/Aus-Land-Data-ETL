@@ -1,2 +1,1 @@
-['ALTER TABLE a.a2 ADD CONSTRAINT fk_b_id FOREIGN KEY (b_id) REFERENCES '
- 'b(b_id);']
+['ALTER TABLE b ADD CONSTRAINT fk_b_id FOREIGN KEY (b_id) REFERENCES b(b_id);']
