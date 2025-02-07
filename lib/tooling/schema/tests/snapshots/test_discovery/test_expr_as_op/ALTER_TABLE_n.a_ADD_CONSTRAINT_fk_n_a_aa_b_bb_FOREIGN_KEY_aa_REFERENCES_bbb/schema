@@ -1,0 +1,5 @@
+SchemaSyntax(operations=[AlterTable(altered_table=Ref(schema_name='n', name='a'),
+                                    actions=[ColumnAddForeignKey(constraint_name='fk_n_a_aa_b_bb',
+                                                                 constraint_column='aa',
+                                                                 ref_table=Ref(schema_name=None, name='b'),
+                                                                 ref_column='bb')])])

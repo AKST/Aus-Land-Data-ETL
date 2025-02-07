@@ -3,6 +3,7 @@ import pytest
 import sqlglot
 
 from ..discovery import sql_as_operations
+from ..type import Ref
 
 @pytest.mark.parametrize("sql", [
     "CREATE SCHEMA s",
@@ -25,10 +26,40 @@ from ..discovery import sql_as_operations
     "DO $$ DECLARE total INT := 1; FOR i in 0..total LOOP\n EXECUTE 'select 1';\nEND LOOP; END $$;",
     "CREATE FUNCTION a.c(input TEXT) RETURNS TEXT $$ BEGIN RETURN ''; END; $$ LANGUAGE plpgsql",
     "CREATE OR REPLACE FUNCTION a.c(input TEXT) RETURNS TEXT $$ BEGIN RETURN ''; END; $$ LANGUAGE plpgsql",
+    "ALTER TABLE a ADD CONSTRAINT fk_a_aa_b_bb FOREIGN KEY (aa) REFERENCES b(bb)",
+    "ALTER TABLE n.a ADD CONSTRAINT fk_n_a_aa_b_bb FOREIGN KEY (aa) REFERENCES b(bb)",
+    "ALTER TABLE a ADD CONSTRAINT fk_a_aa_n_b_bb FOREIGN KEY (aa) REFERENCES n.b(bb)",
+    "ALTER TABLE n.a ADD CONSTRAINT fk_n_a_aa_n_b_bb FOREIGN KEY (aa) REFERENCES n.b(bb)",
 ])
 def test_expr_as_op(snapshot, sql: str):
     operations = sql_as_operations(sql)
     snapshot.assert_match(pformat(operations, width=150), 'schema')
+
+@pytest.mark.parametrize("sql,fk_name,src_ref,ref_ref,src_col,ref_col", [
+    (
+        "ALTER TABLE a ADD CONSTRAINT fk_a_aa_b_bb FOREIGN KEY (aa) REFERENCES b(bb)",
+        'fk_a_aa_b_bb', Ref(None, 'a'), Ref(None, 'b'), 'aa', 'bb'
+    ),
+    (
+        "ALTER TABLE n.a ADD CONSTRAINT fk_n_a_aa_b_bb FOREIGN KEY (aa) REFERENCES b(bb)",
+        'fk_n_a_aa_b_bb', Ref('n', 'a'), Ref(None, 'b'), 'aa', 'bb'
+    ),
+    (
+        "ALTER TABLE a ADD CONSTRAINT fk_a_aa_n_b_bb FOREIGN KEY (aa) REFERENCES m.b(bb)",
+        'fk_a_aa_n_b_bb', Ref(None, 'a'), Ref('m', 'b'), 'aa', 'bb'
+    ),
+    (
+        "ALTER TABLE n.a ADD CONSTRAINT fk_n_a_aa_n_b_bb FOREIGN KEY (aa) REFERENCES m.b(bb)",
+        'fk_n_a_aa_n_b_bb', Ref('n', 'a'), Ref('m', 'b'), 'aa', 'bb'
+    ),
+])
+def test_alter_table(sql, fk_name, src_ref, ref_ref, src_col, ref_col):
+    s = next(o for o in sql_as_operations(sql).operations)
+    assert s.altered_table == src_ref
+    assert s.actions[0].constraint_name == fk_name
+    assert s.actions[0].constraint_column == src_col
+    assert s.actions[0].ref_table == ref_ref
+    assert s.actions[0].ref_column == ref_col
 
 @pytest.mark.parametrize("sql", [
     "CREATE FUNCTION a.c(input TEXT) RETURNS TEXT $$ BEGIN RETURN ''; END; $$ LANGUAGE plpgsql",

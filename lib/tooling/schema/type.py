@@ -1,3 +1,4 @@
+from abc import ABC
 from dataclasses import dataclass, field
 from os.path import join as join_path
 from sqlglot import Expression
@@ -60,7 +61,7 @@ class Ref:
 
 class Stmt:
     @dataclass
-    class Op:
+    class Op(ABC):
         expr_tree: Expression = field(repr=False)
 
     @dataclass
@@ -99,6 +100,30 @@ class Stmt:
         @property
         def is_concurrent(self: Self) -> bool:
             return self.expr_tree.args['concurrently']
+
+    @dataclass
+    class AlterTable(Op, ABC):
+        altered_table: Ref
+        actions: list['AlterTableAction']
+
+class AlterTableAction:
+    @dataclass
+    class Op(ABC):
+        expr_tree: Expression = field(repr=False)
+
+    @dataclass
+    class SetSchema(Op):
+        schema: str
+
+    @dataclass
+    class ColumnConstraint(Op, ABC):
+        constraint_name: str
+        constraint_column: str
+
+    @dataclass
+    class ColumnAddForeignKey(ColumnConstraint):
+        ref_table: Ref
+        ref_column: str
 
 @dataclass
 class SchemaSyntax:
