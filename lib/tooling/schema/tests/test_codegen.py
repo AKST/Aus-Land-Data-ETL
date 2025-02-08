@@ -3,7 +3,7 @@ import pytest
 
 from ..type import Stmt
 from ..codegen import *
-from ..discovery import sql_as_operations
+from ..reader import sql_as_operations
 
 @pytest.mark.parametrize("omit_foreign_keys,sql", [
     (False, "CREATE SCHEMA s"),

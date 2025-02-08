@@ -137,6 +137,8 @@ def reindex(commands: SchemaSyntax, allowed: Set[EntityKind]):
                 continue
             case Stmt.OpaqueDoBlock(expr):
                 continue
+            case Stmt.AlterTable(expr):
+                continue
             case other:
                 raise TypeError(f'have not handled {other}')
 

@@ -34,8 +34,8 @@ class _FileMeta:
     step: int
     name: Optional[str]
 
-class SchemaDiscovery:
-    logger = getLogger(f'{__name__}.SchemaDiscovery')
+class SchemaReader:
+    logger = getLogger(f'{__name__}.SchemaReader')
     file_regex: re.Pattern
     root_dir: str
     _io: IoService
@@ -49,12 +49,12 @@ class SchemaDiscovery:
         self._io = io
 
     @staticmethod
-    def create(io: IoService, root_dir: str) -> 'SchemaDiscovery':
+    def create(io: IoService, root_dir: str) -> 'SchemaReader':
         path_root = re.escape(root_dir)
         path_ns = r'(?P<ns>[_a-zA-Z][_a-zA-Z0-9]*)'
         path_file = r'(?P<step>\d{3})_APPLY(_(?P<name>[_a-zA-Z][_a-zA-Z0-9]*))?.sql'
         pattern = re.compile(rf'^{path_root}/{path_ns}/schema/{path_file}$')
-        return SchemaDiscovery(root_dir, pattern, io)
+        return SchemaReader(root_dir, pattern, io)
 
     async def files(
         self: Self,

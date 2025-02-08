@@ -2,7 +2,7 @@ from pprint import pformat
 import pytest
 import sqlglot
 
-from ..discovery import sql_as_operations
+from ..reader import sql_as_operations
 from ..type import Ref
 
 @pytest.mark.parametrize("sql", [

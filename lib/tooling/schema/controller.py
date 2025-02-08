@@ -7,22 +7,22 @@ from lib.service.database import DatabaseService
 
 from lib.tooling.schema import codegen
 from .config import schema_ns
-from .discovery import SchemaDiscovery
+from .reader import SchemaReader
 from .type import Command, Transform
 
 class SchemaController:
     _logger = getLogger(f'{__name__}.SchemaController')
     _io: IoService
     _db: DatabaseService
-    _discovery: SchemaDiscovery
+    _reader: SchemaReader
 
     def __init__(self: Self,
                  io: IoService,
                  db: DatabaseService,
-                 discovery: SchemaDiscovery) -> None:
+                 reader: SchemaReader) -> None:
         self._db = db
         self._io = io
-        self._discovery = discovery
+        self._reader = reader
 
     async def command(self: Self, command: Command) -> None:
         self._logger.info(command)
@@ -44,7 +44,7 @@ class SchemaController:
 
     async def create(self: Self, command: Command, t: Transform.Create) -> None:
         load_syn = not t.run_raw_schema
-        file_list = await self._discovery.files(
+        file_list = await self._reader.files(
             command.ns,
             command.ns_range,
             load_syn=load_syn)
@@ -78,7 +78,7 @@ class SchemaController:
                         raise e
 
     async def drop(self: Self, command: Command, t: Transform.Drop) -> None:
-        file_list = await self._discovery.files(command.ns, command.ns_range, load_syn=True)
+        file_list = await self._reader.files(command.ns, command.ns_range, load_syn=True)
 
         async with self._db.async_connect() as conn, conn.cursor() as cursor:
             for file in reversed(file_list):
@@ -90,7 +90,7 @@ class SchemaController:
                     await cursor.execute(operation)
 
     async def truncate(self: Self, command: Command, t: Transform.Truncate) -> None:
-        file_list = await self._discovery.files(command.ns, command.ns_range, load_syn=True)
+        file_list = await self._reader.files(command.ns, command.ns_range, load_syn=True)
 
         async with self._db.async_connect() as conn, conn.cursor() as cursor:
             for file in reversed(file_list):
@@ -102,7 +102,7 @@ class SchemaController:
                     await cursor.execute(operation)
 
     async def reindex(self: Self, command: Command, t: Transform.ReIndex) -> None:
-        file_list = await self._discovery.files(command.ns, command.ns_range, load_syn=True)
+        file_list = await self._reader.files(command.ns, command.ns_range, load_syn=True)
         async with self._db.async_connect() as conn:
             await conn.set_autocommit(True)
             for file in reversed(file_list):
@@ -121,7 +121,7 @@ class SchemaController:
                     raise
 
     async def add_foreign_keys(self: Self, command: Command, t: Transform.AddForeignKeys) -> None:
-        file_list = await self._discovery.files(command.ns, command.ns_range, load_syn=True)
+        file_list = await self._reader.files(command.ns, command.ns_range, load_syn=True)
 
         async with self._db.async_connect() as conn, conn.cursor() as cursor:
             for file in file_list:
@@ -140,7 +140,7 @@ class SchemaController:
                     raise
 
     async def remove_foreign_keys(self: Self, command: Command, t: Transform.RemoveForeignKeys) -> None:
-        file_list = await self._discovery.files(command.ns, command.ns_range, load_syn=True)
+        file_list = await self._reader.files(command.ns, command.ns_range, load_syn=True)
 
         async with self._db.async_connect() as conn, conn.cursor() as cursor:
             for file in file_list:
