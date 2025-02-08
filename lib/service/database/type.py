@@ -54,10 +54,6 @@ class CursorLike(Protocol):
         ...
 
 class ConnectionLike(Protocol):
-    @property
-    def info(self: Self) -> Any:
-        ...
-
     async def __aexit__(self: Self, *args, **kwargs):
         ...
 
@@ -89,5 +85,8 @@ class DatabaseService(Protocol):
         ...
 
     def async_connect(self: Self) -> ConnectionLike:
+        ...
+
+    def is_idle(self: Self, conn: ConnectionLike) -> bool:
         ...
 

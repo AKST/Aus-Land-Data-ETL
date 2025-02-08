@@ -40,6 +40,7 @@ class IngestConfig:
     docker_volume: str
     docker_image_config: ImageConfig
     docker_container_config: ContainerConfig
+    enable_gis: bool
     enable_gnaf: bool
     enable_clean_staging_data: bool
 
@@ -173,27 +174,28 @@ async def ingest_all(config: IngestConfig):
             io_service,
         )
 
-    await ingest_gis(
-        io_service,
-        db_service,
-        uuid,
-        clock,
-        GisTaskConfig.Ingestion(
-            deduplication=GisTaskConfig.Deduplication(
-                run_from=None,
-                run_till=None,
-                truncate=False,
-            ),
-            staging=GisTaskConfig.StageApiData(
-                db_workers=config.db_connections,
-                db_mode='write',
-                gis_params=[],
-                exp_backoff_attempts=8,
-                disable_cache=False,
-                projections=GisTaskConfig.projection_kinds,
-            ),
+    if config.enable_gis:
+        await ingest_gis(
+            io_service,
+            db_service,
+            uuid,
+            clock,
+            GisTaskConfig.Ingestion(
+                deduplication=GisTaskConfig.Deduplication(
+                    run_from=None,
+                    run_till=None,
+                    truncate=False,
+                ),
+                staging=GisTaskConfig.StageApiData(
+                    db_workers=config.db_connections,
+                    db_mode='write',
+                    gis_params=[],
+                    exp_backoff_attempts=8,
+                    disable_cache=False,
+                    projections=GisTaskConfig.projection_kinds,
+                ),
+            )
         )
-    )
 
     await run_count_for_schemas(db_service_config, ns_dependency_order)
 
@@ -238,6 +240,7 @@ if __name__ == '__main__':
         docker_container_config=instance_cfg.docker_container,
         gnaf_states=instance_cfg.gnaf_states,
         enable_gnaf=instance_cfg.enable_gnaf,
+        enable_gis=instance_cfg.enable_gis,
         enable_clean_staging_data=instance_cfg.clean_staging_data,
     )
 

@@ -51,11 +51,17 @@ class SchemaController:
 
         async with self._db.async_connect() as conn, conn.cursor() as cursor:
             for file in file_list:
-                # TODO look into this
+                """
+                WHY DOES THIS EXIST?
+
+                In practise this isn't actually used! It's to handle instances
+                of concurrently creating indexes, which really shouldn't appear
+                in our schemas.
+                """
                 if file.is_known_to_be_transaction_unsafe:
                     await conn.commit()
                     await conn.set_autocommit(True)
-                elif conn.info.transaction_status == psycopg.pq.TransactionStatus.IDLE:
+                elif self._db.is_idle(conn):
                     await conn.set_autocommit(False)
 
                 if t.run_raw_schema:

@@ -10,7 +10,6 @@ from typing import (
     Optional,
     Self,
     Type,
-    Tuple,
 )
 
 from lib.service.io import IoService
@@ -18,6 +17,7 @@ from lib.utility.concurrent import fmap
 from lib.utility.iteration import partition
 
 from .config import schema_ns
+from .file_discovery import FileDiscovery, FileDiscoveryMatch
 from .type import (
     AlterTableAction,
     Stmt,
@@ -28,33 +28,14 @@ from .type import (
     Ref,
 )
 
-@dataclass
-class _FileMeta:
-    ns: SchemaNamespace
-    step: int
-    name: Optional[str]
-
 class SchemaReader:
     logger = getLogger(f'{__name__}.SchemaReader')
-    file_regex: re.Pattern
-    root_dir: str
-    _io: IoService
 
     def __init__(self: Self,
-                 root_dir: str,
-                 file_regex: re.Pattern[str],
+                 file_discovery: FileDiscovery,
                  io: IoService) -> None:
-        self.root_dir = root_dir
-        self.file_regex = file_regex
+        self.file_discovery = file_discovery
         self._io = io
-
-    @staticmethod
-    def create(io: IoService, root_dir: str) -> 'SchemaReader':
-        path_root = re.escape(root_dir)
-        path_ns = r'(?P<ns>[_a-zA-Z][_a-zA-Z0-9]*)'
-        path_file = r'(?P<step>\d{3})_APPLY(_(?P<name>[_a-zA-Z][_a-zA-Z0-9]*))?.sql'
-        pattern = re.compile(rf'^{path_root}/{path_ns}/schema/{path_file}$')
-        return SchemaReader(root_dir, pattern, io)
 
     async def files(
         self: Self,
@@ -62,7 +43,7 @@ class SchemaReader:
         maybe_range: Optional[range] = None,
         load_syn=False,
     ) -> list[SqlFileMetaData]:
-        metas = [(f, self.__f_meta_data(f)) for f in await self.__ns_sql(name)]
+        metas = await self.file_discovery.ns_matches(name)
 
         return sorted([
             await self.__f_sql_meta_data(f, meta, load_syn)
@@ -80,35 +61,18 @@ class SchemaReader:
             namespace: sorted([
                 await self.__f_sql_meta_data(f, meta, load_syn)
                 for f, meta in [
-                    (f, self.__f_meta_data(f))
-                    for f in await self.__ns_sql(namespace)
+                    (f, self.file_discovery.match_file(f))
+                    for f in await self.file_discovery.ns_sql_files(namespace)
                 ]
-                for f in await self.__ns_sql(namespace)
+                for f in await self.file_discovery.ns_sql_files(namespace)
             ], key=lambda it: it.step)
             for namespace in (names or schema_ns)
         }
 
-    async def __ns_sql(self: Self, ns: SchemaNamespace) -> list[str]:
-        glob_s = '*_APPLY*.sql'
-        root_d = f'{self.root_dir}/{ns}/schema'
-        return [f async for f in self._io.grep_dir(root_d, glob_s)]
-
-    def __f_meta_data(self: Self, f: str) -> _FileMeta:
-        match self.file_regex.match(f):
-            case None: raise ValueError(f'invalid file {f}')
-            case match:
-                ns_str = match.group('ns')
-                step = int(match.group('step'))
-                name = match.group('name')
-                if ns_str not in schema_ns:
-                    raise TypeError(f'unknown namespace {ns_str}')
-                ns: SchemaNamespace = cast(SchemaNamespace, ns_str)
-                return _FileMeta(ns, step, name)
-
-    async def __f_sql_meta_data(self: Self, f: str, meta: _FileMeta, load_syn: bool) -> SqlFileMetaData:
+    async def __f_sql_meta_data(self: Self, f: str, meta: FileDiscoveryMatch, load_syn: bool) -> SqlFileMetaData:
         try:
             contents = await fmap(sql_as_operations, self._io.f_read(f)) if load_syn else None
-            return SqlFileMetaData(f, self.root_dir, meta.ns, meta.step, meta.name, contents)
+            return SqlFileMetaData(f, self.file_discovery.root_dir, meta.ns, meta.step, meta.name, contents)
         except Exception as e:
             self.logger.error(f'failed on {f}')
             raise e

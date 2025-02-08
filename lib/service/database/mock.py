@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 import re
 from typing import Any, Self, Protocol, Sequence
 
-from .type import DatabaseService, CursorLike, ConnectionLike
+from .type import DatabaseService, CursorLike, ConnectionLike, CopyLike
 
 def clean_sql(sql: str) -> str:
     return re.sub(r'(\s|\n)+', ' ', sql).strip()
@@ -42,14 +42,15 @@ class MockCursor(CursorLike):
         self.state.fetchall_i += 1
         return result
 
+    async def abort(self: Self):
+        return
+
+    def copy(self: Self, statement: str, params: list[str] | None = None) -> CopyLike:
+        raise NotImplementedError('idk I didn\'t get around to it')
 
 @dataclass
 class MockConnection(ConnectionLike):
     state: MockDbState
-
-    @property
-    def info(self: Self) -> Any:
-        raise Exception()
 
     async def __aexit__(self: Self, *args, **kwargs):
         return
@@ -71,6 +72,12 @@ class MockConnection(ConnectionLike):
         self.state.execute_args.append((sql, args))
         return MockCursor(self.state)
 
+    async def abort(self: Self):
+        return
+
+    def copy(self: Self, statement: str, params: list[str] | None = None) -> CopyLike:
+        raise NotImplementedError('idk I didn\'t get around to it')
+
 @dataclass
 class MockDatabaseService(DatabaseService):
     state: MockDbState = field(default_factory=lambda: MockDbState())
@@ -86,3 +93,6 @@ class MockDatabaseService(DatabaseService):
 
     def async_connect(self) -> ConnectionLike:
         return MockConnection(self.state)
+
+    def is_idle(self: Self, conn: ConnectionLike) -> bool:
+        return True

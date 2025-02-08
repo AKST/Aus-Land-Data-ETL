@@ -66,3 +66,8 @@ class DatabaseServiceImpl(DatabaseService):
                     raise e
                 await asyncio.sleep(interval)
 
+    def is_idle(self: Self, conn: ConnectionLike) -> bool:
+        if isinstance(conn, psycopg.AsyncConnection):
+            return conn.info.transaction_status == psycopg.pq.TransactionStatus.IDLE
+        raise TypeError('unknown connection kind')
+

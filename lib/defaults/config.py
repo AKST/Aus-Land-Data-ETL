@@ -18,6 +18,7 @@ class InstanceCfg:
     docker_volume: str
     docker_container: ContainerConfig
     docker_image: ImageConfig
+    enable_gis: bool
     enable_gnaf: bool
     gnaf_states: Set[GnafState]
     nswvg_lv_discovery_mode: NswVgLvCsvDiscoveryMode.T
