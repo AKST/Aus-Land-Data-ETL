@@ -72,7 +72,7 @@ def test_drop_truncate(snapshot, cascade: bool, sql: str):
         for rel_ns in ['', 'a.']
     ]
 ])
-def test_add_fk(snapshot, sql: str):
+def test_create_table_add_fk(snapshot, sql: str):
     codegen = list(add_foreign_keys(sql_as_operations(sql)))
     snapshot.assert_match(pformat(codegen), "add_foreign_keys")
 
@@ -111,7 +111,7 @@ def test_add_fk(snapshot, sql: str):
         ['fk_sa4_ameta'],
     ),
 ])
-def test_rm_fk(
+def test_create_table_rm_fk(
         snapshot, sql: str,
         fks_for_table: FkMap,
         allow: List[str],
