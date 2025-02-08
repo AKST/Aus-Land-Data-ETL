@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS abs.state (
     geometry GEOMETRY(MultiPolygon, 7844)
 );
 
--- Greater City C???? Statitical(?) Area
+-- Greater Capitial City Statitical(?) Area
 CREATE TABLE IF NOT EXISTS abs.gccsa (
     gcc_code VARCHAR(5) PRIMARY KEY,
     gcc_name VARCHAR(100),

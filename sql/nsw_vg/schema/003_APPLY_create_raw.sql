@@ -6,7 +6,7 @@
 --   - `basis_date_N` is `event.effective_date`
 --
 CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_a_legacy (
-    ps_row_a_legacy_id BIGSERIAL PRIMARY KEY,
+    ps_row_a_legacy_id UUID NOT NULL,
     position bigint NOT NULL,
     file_path TEXT NOT NULL UNIQUE,
     year_of_sale INT NOT NULL,
@@ -14,11 +14,13 @@ CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_a_legacy (
     date_provided DATE NOT NULL
 );
 
-CREATE INDEX idx_file_path_ps_row_a_legacy
+CREATE INDEX idx_ps_row_a_legacy_ps_row_a_legacy_id
+    ON nsw_vg_raw.ps_row_a_legacy(ps_row_a_legacy_id);
+CREATE INDEX idx_ps_row_a_legacy_file_path
     ON nsw_vg_raw.ps_row_a_legacy(file_path);
 
 CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_b_legacy (
-    ps_row_b_legacy_id BIGSERIAL PRIMARY KEY,
+    ps_row_b_legacy_id UUID NOT NULL,
     position bigint NOT NULL,
     file_path TEXT NOT NULL,
     district_code INT NOT NULL,
@@ -42,12 +44,15 @@ CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_b_legacy (
     UNIQUE (file_path, position)
 );
 
+CREATE INDEX idx_ps_row_b_legacy_ps_row_b_legacy_id
+    ON nsw_vg_raw.ps_row_b_legacy(ps_row_b_legacy_id);
+
 --
 -- # Non Legacy
 --
 
 CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_a (
-    ps_row_a_id BIGSERIAL PRIMARY KEY,
+    ps_row_a_id UUID UNIQUE NOT NULL,
     position bigint NOT NULL,
     year_of_sale INT NOT NULL,
     file_path TEXT NOT NULL UNIQUE,
@@ -57,11 +62,13 @@ CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_a (
     submitting_user_id TEXT NOT NULL
 );
 
-CREATE INDEX idx_file_path_ps_row_a
+CREATE INDEX idx_ps_row_a_ps_row_a_id
+    ON nsw_vg_raw.ps_row_a(ps_row_a_id);
+CREATE INDEX idx_ps_row_a_file_path
     ON nsw_vg_raw.ps_row_a(file_path);
 
 CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_b (
-    ps_row_b_id BIGSERIAL PRIMARY KEY,
+    ps_row_b_id UUID UNIQUE NOT NULL,
     position bigint NOT NULL,
     file_path TEXT NOT NULL,
     district_code INT NOT NULL,
@@ -98,8 +105,11 @@ CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_b (
     UNIQUE (file_path, position)
 );
 
+CREATE INDEX idx_ps_row_b_ps_row_b_id
+    ON nsw_vg_raw.ps_row_b(ps_row_b_id);
+
 CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_c (
-    ps_row_c_id BIGSERIAL PRIMARY KEY,
+    ps_row_c_id UUID UNIQUE NOT NULL,
     position bigint NOT NULL,
     file_path TEXT,
     district_code INT NOT NULL,
@@ -110,8 +120,11 @@ CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_c (
     UNIQUE (file_path, position)
 );
 
+CREATE INDEX idx_ps_row_c_ps_row_c_id
+    ON nsw_vg_raw.ps_row_c(ps_row_c_id);
+
 CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_d (
-    ps_row_d_id BIGSERIAL PRIMARY KEY,
+    ps_row_d_id UUID UNIQUE NOT NULL,
     position bigint NOT NULL,
     file_path TEXT,
     district_code INT NOT NULL,
@@ -121,3 +134,6 @@ CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_d (
     participant nsw_lrs.sale_participant NOT NULL,
     UNIQUE (file_path, position)
 );
+
+CREATE INDEX idx_ps_row_d_ps_row_d_id
+    ON nsw_vg_raw.ps_row_d(ps_row_d_id);

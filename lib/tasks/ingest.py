@@ -40,6 +40,7 @@ class IngestConfig:
     docker_volume: str
     docker_image_config: ImageConfig
     docker_container_config: ContainerConfig
+    enable_abs: bool
     enable_gis: bool
     enable_gnaf: bool
     enable_clean_staging_data: bool
@@ -239,6 +240,7 @@ if __name__ == '__main__':
         docker_image_config=instance_cfg.docker_image,
         docker_container_config=instance_cfg.docker_container,
         gnaf_states=instance_cfg.gnaf_states,
+        enable_abs=instance_cfg.enable_abs,
         enable_gnaf=instance_cfg.enable_gnaf,
         enable_gis=instance_cfg.enable_gis,
         enable_clean_staging_data=instance_cfg.clean_staging_data,

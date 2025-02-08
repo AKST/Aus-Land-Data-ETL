@@ -18,6 +18,7 @@ from lib.pipeline.nsw_vg.property_sales.orchestration import *
 from lib.service.clock import ClockService
 from lib.service.io import IoService, IoServiceImpl
 from lib.service.database import *
+from lib.service.uuid import UuidServiceImpl
 from lib.utility.sampling import Sampler, SamplingConfig
 
 from .config import NswVgTaskConfig
@@ -103,6 +104,7 @@ async def _child_main(
 
     file_limit = int(soft_limit * 0.8)
     io = IoServiceImpl.create(file_limit - config.db_pool_size)
+    uuid = UuidServiceImpl()
     clock = ClockService()
     db = DatabaseServiceImpl.create(config.db_config, config.db_pool_size)
 
@@ -111,6 +113,7 @@ async def _child_main(
         async with asyncio.TaskGroup() as tg:
             factory = PropertySalesRowParserFactory(
                 io,
+                uuid,
                 BufferedFileReaderTextSource,
                 config.parser_chunk_size,
             )
@@ -193,11 +196,11 @@ if __name__ == '__main__':
     parser.add_argument("--download-min", type=date.fromisoformat, default=None)
     parser.add_argument("--download-max", type=date.fromisoformat, default=None)
     parser.add_argument("--truncate-earlier", action='store_true', default=False)
-    parser.add_argument("--workers", type=int, default=1)
+    parser.add_argument("--workers", type=int, required=True)
     parser.add_argument("--worker-debug", type=int, default=False)
     parser.add_argument("--worker-file-limit", type=int, default=None)
-    parser.add_argument("--worker-db-pool-size", type=int, default=None)
-    parser.add_argument("--worker-db-batch-size", type=int, default=50)
+    parser.add_argument("--worker-db-pool-size", type=int, default=16)
+    parser.add_argument("--worker-db-batch-size", type=int, default=1000)
     parser.add_argument("--worker-parser-chunk-size", type=int, default=8 * 2 ** 10)
 
     args = parser.parse_args()

@@ -7,6 +7,7 @@ import re
 
 from lib.pipeline.nsw_vg.property_sales import PropertySaleDatFileMetaData
 from lib.service.io import IoService
+from lib.service.uuid import UuidService
 
 from .factories import AbstractFormatFactory
 from .syntax import get_columns_and_syntax, Syntax
@@ -15,13 +16,16 @@ from .text_source import AbstractTextSource
 class PropertySalesRowParserFactory:
     Source: Type[AbstractTextSource]
     chunk_size: int
+    _uuid: UuidService
     _io: IoService
 
     def __init__(self: Self,
                  io: IoService,
+                 uuid: UuidService,
                  Source: Type[AbstractTextSource],
                  chunk_size: int = 8 * 2 ** 10):
         self._io = io
+        self._uuid = uuid
         self.Source = Source
         self.chunk_size = chunk_size
 
@@ -31,7 +35,7 @@ class PropertySalesRowParserFactory:
         path = file_data.file_path
 
         Factory, syntax = get_columns_and_syntax(date, year)
-        factory = Factory.create(year=year, file_path=path)
+        factory = Factory.create(self._uuid, year=year, file_path=path)
         f_path = file_data.file_path
         source = await self.Source.create(
             file_data.file_path,

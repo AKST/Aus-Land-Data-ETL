@@ -13,6 +13,7 @@ class BasePropertySaleFileRow(abc.ABC):
 
 @dataclass
 class SaleRecordFileLegacy(BasePropertySaleFileRow):
+    ps_row_a_legacy_id: str
     position: int
     file_path: str = field(repr=False)
     year_of_sale: int = field(repr=False)
@@ -24,6 +25,7 @@ class SaleRecordFileLegacy(BasePropertySaleFileRow):
 
 @dataclass
 class SalePropertyDetails1990(BasePropertySaleFileRow):
+    ps_row_b_legacy_id: str
     position: int
     file_path: str = field(repr=False)
     parent: SaleRecordFileLegacy = field(repr=False)
@@ -52,6 +54,7 @@ class SalePropertyDetails1990(BasePropertySaleFileRow):
 
 @dataclass
 class SaleRecordFile(BasePropertySaleFileRow):
+    ps_row_a_id: str
     position: int
     year_of_sale: int
     file_path: str = field(repr=False)
@@ -65,6 +68,7 @@ class SaleRecordFile(BasePropertySaleFileRow):
 
 @dataclass
 class SalePropertyDetails(BasePropertySaleFileRow):
+    ps_row_b_id: str
     position: int
     file_path: str = field(repr=False)
     parent: SaleRecordFile = field(repr=False)
@@ -102,6 +106,7 @@ class SalePropertyDetails(BasePropertySaleFileRow):
 
 @dataclass
 class SalePropertyLegalDescription(BasePropertySaleFileRow):
+    ps_row_c_id: str
     position: int
     file_path: str = field(repr=False)
     parent: SalePropertyDetails = field(repr=False)
@@ -122,6 +127,7 @@ class SalePropertyLegalDescription(BasePropertySaleFileRow):
 
 @dataclass
 class SaleParticipant(BasePropertySaleFileRow):
+    ps_row_d_id: str
     position: int
     file_path: str = field(repr=False)
     parent: SalePropertyLegalDescription = field(repr=False)

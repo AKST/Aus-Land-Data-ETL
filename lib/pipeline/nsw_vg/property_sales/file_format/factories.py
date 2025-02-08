@@ -5,10 +5,11 @@ from typing import Any, Callable, Generic, Self, List, TypeVar, Optional, Protoc
 
 from lib.pipeline.nsw_vg.property_sales import data as t
 from lib.pipeline.nsw_vg.raw_data.rows import *
+from lib.service.uuid import UuidService
 
 class AbstractFormatFactory(abc.ABC):
     @classmethod
-    def create(cls, year: int, file_path: str) -> 'AbstractFormatFactory':
+    def create(cls, uuid: UuidService, year: int, file_path: str) -> 'AbstractFormatFactory':
         raise NotImplementedError('create not implemented on AbstractFormatFactory')
 
     @abc.abstractmethod
@@ -35,16 +36,18 @@ class CurrentFormatFactory(AbstractFormatFactory):
     zone_standard: t.ZoningKind = 'ep&a_2006'
     zone_code_len: int = 3
 
-    def __init__(self: Self, year: int, file_path: str):
+    def __init__(self: Self, uuid: UuidService, year: int, file_path: str):
+        self.uuid = uuid
         self.year = year
         self.file_path = file_path
 
     @classmethod
-    def create(Cls, year: int, file_path: str) -> 'CurrentFormatFactory':
-        return CurrentFormatFactory(year, file_path)
+    def create(Cls, uuid: UuidService, year: int, file_path: str) -> 'CurrentFormatFactory':
+        return CurrentFormatFactory(uuid, year, file_path)
 
     def create_a(self: Self, pos: int, row: List[str], variant: Optional[str]):
         return t.SaleRecordFile(
+            ps_row_a_id=self.uuid.get_uuid4_hex(),
             position=pos,
             year_of_sale=self.year,
             file_path=self.file_path,
@@ -56,6 +59,7 @@ class CurrentFormatFactory(AbstractFormatFactory):
 
     def create_b(self: Self, pos: int, row: List[str], a_record: Any, variant: Optional[str]):
         return t.SalePropertyDetails(
+            ps_row_b_id=self.uuid.get_uuid4_hex(),
             position=pos,
             file_path=self.file_path,
             parent=a_record,
@@ -87,6 +91,7 @@ class CurrentFormatFactory(AbstractFormatFactory):
 
     def create_c(self: Self, pos: int, row: List[str], b_record: Any, variant: Optional[str]):
         return t.SalePropertyLegalDescription(
+            ps_row_c_id=self.uuid.get_uuid4_hex(),
             position=pos,
             file_path=self.file_path,
             parent=b_record,
@@ -99,6 +104,7 @@ class CurrentFormatFactory(AbstractFormatFactory):
 
     def create_d(self: Self, pos: int, row: List[str], c_record: Any, variant: Optional[str]):
         return t.SaleParticipant(
+            ps_row_d_id=self.uuid.get_uuid4_hex(),
             position=pos,
             file_path=self.file_path,
             parent=c_record,
@@ -125,11 +131,12 @@ class Legacy2002Format(CurrentFormatFactory):
     zone_code_len = 4
 
     @classmethod
-    def create(cls, year: int, file_path: str) -> 'Legacy2002Format':
-        return Legacy2002Format(year, file_path)
+    def create(cls, uuid: UuidService, year: int, file_path: str) -> 'Legacy2002Format':
+        return Legacy2002Format(uuid, year, file_path)
 
     def create_a(self: Self, pos: int, row: List[str], variant: Optional[str]):
         return t.SaleRecordFile(
+            ps_row_a_id=self.uuid.get_uuid4_hex(),
             position=pos,
             file_path=self.file_path,
             year_of_sale=self.year,
@@ -144,6 +151,7 @@ class Legacy2002Format(CurrentFormatFactory):
             return super().create_c(pos, row, b_record, variant)
         elif variant == 'missing_property_id':
             return t.SalePropertyLegalDescription(
+                ps_row_c_id=self.uuid.get_uuid4_hex(),
                 position=pos,
                 file_path=self.file_path,
                 parent=b_record,
@@ -161,6 +169,7 @@ class Legacy2002Format(CurrentFormatFactory):
             return super().create_d(pos, row, c_record, variant)
         elif variant == 'missing_property_id':
             return t.SaleParticipant(
+                ps_row_d_id=self.uuid.get_uuid4_hex(),
                 position=pos,
                 file_path=self.file_path,
                 parent=c_record,
@@ -174,13 +183,14 @@ class Legacy2002Format(CurrentFormatFactory):
             raise TypeError(f'unknown variant {variant}')
 
 class Legacy1990Format(AbstractFormatFactory):
-    def __init__(self: Self, year: int, file_path: str):
+    def __init__(self: Self, uuid: UuidService, year: int, file_path: str):
+        self.uuid = uuid
         self.year = year
         self.file_path = file_path
 
     @classmethod
-    def create(cls, year: int, file_path: str):
-        return Legacy1990Format(year, file_path)
+    def create(cls, uuid: UuidService, year: int, file_path: str):
+        return Legacy1990Format(uuid, year, file_path)
 
     def create_a(self: Self, pos: int, row: List[str], variant: Optional[str]):
         """
@@ -188,6 +198,7 @@ class Legacy1990Format(AbstractFormatFactory):
         to maintain some level of consistency with the later formats.
         """
         return t.SaleRecordFileLegacy(
+            ps_row_a_legacy_id=self.uuid.get_uuid4_hex(),
             position=pos,
             file_path=self.file_path,
             year_of_sale=self.year,
@@ -197,6 +208,7 @@ class Legacy1990Format(AbstractFormatFactory):
 
     def create_b(self: Self, pos: int, row: List[str], a_record: Any, variant: Optional[str]):
         return t.SalePropertyDetails1990(
+            ps_row_b_legacy_id=self.uuid.get_uuid4_hex(),
             position=pos,
             file_path=self.file_path,
             parent=a_record,
