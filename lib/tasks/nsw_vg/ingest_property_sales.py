@@ -153,7 +153,7 @@ async def _cli_main(
     file_limit: int,
     truncate: bool
 ) -> None:
-    from lib.tooling.schema import SchemaController, SchemaDiscovery, SchemaCommand
+    from lib.tooling.schema import create_schema_controller, SchemaCommand
     from ..fetch_static_files import get_session, initialise
 
     clock = ClockService()
@@ -164,10 +164,10 @@ async def _cli_main(
         environment = await initialise(io, session)
 
     if truncate:
-        controller = SchemaController(io, db, SchemaDiscovery.create(io))
-        await controller.command(SchemaCommand.Truncate(
+        controller = create_schema_controller(io, db)
+        await controller.command(SchemaCommand.truncate(
             ns='nsw_vg',
-            range=range(3, 4),
+            ns_range=range(3, 4),
             cascade=True,
         ))
 

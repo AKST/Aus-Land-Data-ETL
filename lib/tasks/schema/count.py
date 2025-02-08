@@ -38,7 +38,10 @@ async def run_count_for_schemas(db_conf: DatabaseConfig, packages: List[SchemaNa
 
 def package_schemas(package: SchemaNamespace) -> List[str]:
     match package:
-        case 'nsw_vg': return ['nsw_vg', 'nsw_vg_raw']
+        case 'nsw_vg': return [
+            'nsw_vg',
+            'nsw_vg_raw',
+        ]
         case 'nsw_spatial': return [
             'nsw_spatial',
             'nsw_spatial_lppt_raw',

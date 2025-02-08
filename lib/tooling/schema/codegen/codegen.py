@@ -31,6 +31,8 @@ def create(commands: SchemaSyntax, omit_foreign_keys: bool) -> Iterator[str]:
                 yield expr.sql(dialect='postgres')
             case Stmt.OpaqueDoBlock(expr):
                 yield expr.sql(dialect='postgres')
+            case Stmt.AlterTable(expr):
+                continue
             case other:
                 raise TypeError(f'have not handled {other}')
 
@@ -80,6 +82,8 @@ def truncate(commands: SchemaSyntax, cascade: bool = False) -> Iterator[str]:
                 continue
             case Stmt.OpaqueDoBlock(expr):
                 continue
+            case Stmt.AlterTable(expr):
+                continue
             case other:
                 raise TypeError(f'have not handled {other}')
 
@@ -95,7 +99,7 @@ def add_foreign_keys(contents: SchemaSyntax) -> Iterator[str]:
             case Stmt.CreateTable(expr, ref):
                 for col, rel, rel_col in _table_foreign_keys(expr):
                     yield f"ALTER TABLE {
-                        str(rel)
+                        str(ref)
                     } ADD CONSTRAINT fk_{
                         col
                     } FOREIGN KEY ({col}) REFERENCES {rel}({rel_col});"
@@ -106,6 +110,8 @@ def add_foreign_keys(contents: SchemaSyntax) -> Iterator[str]:
             case Stmt.CreateView(expr, ref, materialized):
                 continue
             case Stmt.OpaqueDoBlock(expr):
+                continue
+            case Stmt.AlterTable(expr):
                 continue
             case other:
                 raise TypeError(f'have not handled {other}')
@@ -186,8 +192,11 @@ async def make_fk_map(contents: SchemaSyntax, cursor: DbCursorLike) -> FkMap:
                 out[(Stmt.CreateView, str(ref))] = None
             case Stmt.OpaqueDoBlock(expr):
                 continue
+            case Stmt.AlterTable(expr):
+                continue
             case other:
                 raise TypeError(f'have not handled {other}')
+    print(out)
     return out
 
 def remove_foreign_keys(contents: SchemaSyntax, table_fks: FkMap) -> Iterator[str]:
@@ -212,6 +221,8 @@ def remove_foreign_keys(contents: SchemaSyntax, table_fks: FkMap) -> Iterator[st
             case Stmt.CreateView(expr, ref, materialized):
                 continue
             case Stmt.OpaqueDoBlock(expr):
+                continue
+            case Stmt.AlterTable(expr):
                 continue
             case other:
                 raise TypeError(f'have not handled {other}')

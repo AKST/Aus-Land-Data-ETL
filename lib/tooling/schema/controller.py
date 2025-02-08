@@ -8,7 +8,7 @@ from lib.service.database import DatabaseService
 from lib.tooling.schema import codegen
 from .config import schema_ns
 from .discovery import SchemaDiscovery
-from .type import *
+from .type import Command, Transform
 
 class SchemaController:
     _logger = getLogger(f'{__name__}.SchemaController')
@@ -24,29 +24,29 @@ class SchemaController:
         self._io = io
         self._discovery = discovery
 
-    async def command(self: Self, command: Command.BaseCommand) -> None:
+    async def command(self: Self, command: Command) -> None:
         self._logger.info(command)
-        match command:
-            case Command.Create() as command:
-                await self.create(command)
-            case Command.Drop() as command:
-                await self.drop(command)
-            case Command.Truncate() as command:
-                await self.truncate(command)
-            case Command.ReIndex() as command:
-                await self.reindex(command)
-            case Command.AddForeignKeys() as command:
-                await self.add_foreign_keys(command)
-            case Command.RemoveForeignKeys() as command:
-                await self.remove_foreign_keys(command)
+        match command.transform:
+            case Transform.Create() as t:
+                await self.create(command, t)
+            case Transform.Drop() as t:
+                await self.drop(command, t)
+            case Transform.Truncate() as t:
+                await self.truncate(command, t)
+            case Transform.ReIndex() as t:
+                await self.reindex(command, t)
+            case Transform.AddForeignKeys() as t:
+                await self.add_foreign_keys(command, t)
+            case Transform.RemoveForeignKeys() as t:
+                await self.remove_foreign_keys(command, t)
             case other:
                 raise TypeError(f'unknown command {other}')
 
-    async def create(self: Self, command: Command.Create) -> None:
-        load_syn = not command.run_raw_schema
+    async def create(self: Self, command: Command, t: Transform.Create) -> None:
+        load_syn = not t.run_raw_schema
         file_list = await self._discovery.files(
             command.ns,
-            command.range,
+            command.ns_range,
             load_syn=load_syn)
 
         async with self._db.async_connect() as conn, conn.cursor() as cursor:
@@ -58,7 +58,7 @@ class SchemaController:
                 elif conn.info.transaction_status == psycopg.pq.TransactionStatus.IDLE:
                     await conn.set_autocommit(False)
 
-                if command.run_raw_schema:
+                if t.run_raw_schema:
                     sql_text = await self._io.f_read(file.file_name)
                     self._logger.debug(f'running {file.file_name}')
                     await cursor.execute(sql_text)
@@ -68,7 +68,7 @@ class SchemaController:
 
                 for operation in codegen.create(
                     file.contents,
-                    command.omit_foreign_keys,
+                    t.omit_foreign_keys,
                 ):
                     self._logger.debug(operation)
                     try:
@@ -77,56 +77,70 @@ class SchemaController:
                         self._logger.error(f"failed on {operation}")
                         raise e
 
-    async def drop(self: Self, command: Command.Drop) -> None:
-        file_list = await self._discovery.files(command.ns, command.range, load_syn=True)
+    async def drop(self: Self, command: Command, t: Transform.Drop) -> None:
+        file_list = await self._discovery.files(command.ns, command.ns_range, load_syn=True)
 
         async with self._db.async_connect() as conn, conn.cursor() as cursor:
             for file in reversed(file_list):
                 if file.contents is None:
                     raise TypeError()
 
-                for operation in codegen.drop(file.contents, command.cascade):
+                for operation in codegen.drop(file.contents, t.cascade):
                     self._logger.debug(operation)
                     await cursor.execute(operation)
 
-    async def truncate(self: Self, command: Command.Truncate) -> None:
-        file_list = await self._discovery.files(command.ns, command.range, load_syn=True)
+    async def truncate(self: Self, command: Command, t: Transform.Truncate) -> None:
+        file_list = await self._discovery.files(command.ns, command.ns_range, load_syn=True)
 
         async with self._db.async_connect() as conn, conn.cursor() as cursor:
             for file in reversed(file_list):
                 if file.contents is None:
                     raise TypeError()
 
-                for operation in codegen.truncate(file.contents, command.cascade):
+                for operation in codegen.truncate(file.contents, t.cascade):
                     self._logger.debug(operation)
                     await cursor.execute(operation)
 
-    async def reindex(self: Self, command: Command.ReIndex) -> None:
-        file_list = await self._discovery.files(command.ns, command.range, load_syn=True)
+    async def reindex(self: Self, command: Command, t: Transform.ReIndex) -> None:
+        file_list = await self._discovery.files(command.ns, command.ns_range, load_syn=True)
         async with self._db.async_connect() as conn:
             await conn.set_autocommit(True)
             for file in reversed(file_list):
                 if file.contents is None:
                     raise TypeError()
 
-                for operation in codegen.reindex(file.contents, command.allowed):
-                    self._logger.debug(operation)
-                    await conn.execute(operation)
+                try:
+                    operation = ''
+                    for operation in codegen.reindex(file.contents, t.allowed):
+                        self._logger.debug(operation)
+                        await conn.execute(operation)
+                except:
+                    self._logger.error(f'Failed on:\n'
+                                       f'  - File: {file}\n'
+                                       f'  - Operation: {operation}')
+                    raise
 
-    async def add_foreign_keys(self: Self, command: Command.AddForeignKeys) -> None:
-        file_list = await self._discovery.files(command.ns, command.range, load_syn=True)
+    async def add_foreign_keys(self: Self, command: Command, t: Transform.AddForeignKeys) -> None:
+        file_list = await self._discovery.files(command.ns, command.ns_range, load_syn=True)
 
         async with self._db.async_connect() as conn, conn.cursor() as cursor:
             for file in file_list:
                 if file.contents is None:
                     raise TypeError()
 
-                for operation in codegen.add_foreign_keys(file.contents):
-                    self._logger.debug(operation)
-                    await cursor.execute(operation)
+                try:
+                    operation = ''
+                    for operation in codegen.add_foreign_keys(file.contents):
+                        self._logger.debug(operation)
+                        await cursor.execute(operation)
+                except:
+                    self._logger.error(f'Failed on:\n'
+                                       f'  - File: {file}\n'
+                                       f'  - Operation: {operation}')
+                    raise
 
-    async def remove_foreign_keys(self: Self, command: Command.RemoveForeignKeys) -> None:
-        file_list = await self._discovery.files(command.ns, command.range, load_syn=True)
+    async def remove_foreign_keys(self: Self, command: Command, t: Transform.RemoveForeignKeys) -> None:
+        file_list = await self._discovery.files(command.ns, command.ns_range, load_syn=True)
 
         async with self._db.async_connect() as conn, conn.cursor() as cursor:
             for file in file_list:

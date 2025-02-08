@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass
 from logging import getLogger
-from os.path import relpath, basename
+from os.path import relpath
 from sqlglot import parse as parse_sql, Expression
 import sqlglot.expressions as sql_expr
 from typing import (
@@ -49,8 +49,7 @@ class SchemaDiscovery:
         self._io = io
 
     @staticmethod
-    def create(io: IoService, root_dir: Optional[str] = None) -> 'SchemaDiscovery':
-        root_dir = basename('./sql' if root_dir is None else root_dir)
+    def create(io: IoService, root_dir: str) -> 'SchemaDiscovery':
         path_root = re.escape(root_dir)
         path_ns = r'(?P<ns>[_a-zA-Z][_a-zA-Z0-9]*)'
         path_file = r'(?P<step>\d{3})_APPLY(_(?P<name>[_a-zA-Z][_a-zA-Z0-9]*))?.sql'
@@ -219,11 +218,10 @@ def expr_as_op(expr: Expression) -> Optional[Stmt.Op]:
         case sql_expr.Command(this="DO", expression=e):
             return Stmt.OpaqueDoBlock(expr)
         case sql_expr.Alter(kind="TABLE", this=id_info):
-            return Stmt.AlterTable(expr, get_identifiers(id_info), [
-                get_alter_table_action(a) for a in expr.actions
-            ])
+            actions = list(map(get_alter_table_action, expr.actions))
+            table_r = get_identifiers(id_info)
+            return Stmt.AlterTable(expr, table_r, actions)
         case sql_expr.Semicolon():
-            # this typically means a comment
             return None
         case other:
             raise TypeError(f'unknown {repr(other)}')

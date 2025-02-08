@@ -4,7 +4,7 @@ from typing import List
 from lib.service.clock import ClockService
 from lib.service.database import *
 from lib.service.io import IoService, IoServiceImpl
-from lib.tooling.schema import SchemaCommand, SchemaController, SchemaDiscovery
+from lib.tooling.schema import SchemaCommand, create_schema_controller
 from lib.utility.format import fmt_time_elapsed
 
 from .config import GisTaskConfig
@@ -33,16 +33,15 @@ async def ingest_deduplication(
     else:
         scripts = all_scripts[run_from - 1:run_till]
 
-    discovery = SchemaDiscovery.create(io)
-    controller = SchemaController(io, db, discovery)
+    controller = create_schema_controller(io, db)
 
-    async def run_commands(commands: List[SchemaCommand.BaseCommand]):
+    async def run_commands(commands: List[SchemaCommand]):
         for c in commands:
             await controller.command(c)
 
     if cfg.truncate:
         await run_commands([
-            SchemaCommand.Truncate(ns='nsw_lrs', cascade=True, range=range(4, 5)),
+            SchemaCommand.truncate(ns='nsw_lrs', cascade=True, ns_range=range(4, 5)),
         ])
 
     async with (

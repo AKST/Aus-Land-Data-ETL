@@ -41,7 +41,7 @@ from lib.service.http import (
 )
 from lib.service.http.middleware.exp_backoff import BackoffConfig, RetryPreference
 from lib.service.uuid import *
-from lib.tooling.schema import SchemaController, SchemaDiscovery, SchemaCommand
+from lib.tooling.schema import create_schema_controller, SchemaCommand
 
 from .config import GisTaskConfig
 
@@ -165,11 +165,11 @@ async def run_in_console(
     db = DatabaseServiceImpl.create(db_config, config.db_workers)
     uuid = UuidServiceImpl()
     clock = ClockService()
-    controller = SchemaController(io, db, SchemaDiscovery.create(io))
+    controller = create_schema_controller(io, db)
     match config.db_mode:
         case 'write':
-            await controller.command(SchemaCommand.Drop(ns='nsw_spatial'))
-            await controller.command(SchemaCommand.Create(ns='nsw_spatial'))
+            await controller.command(SchemaCommand.drop(ns='nsw_spatial'))
+            await controller.command(SchemaCommand.create(ns='nsw_spatial'))
     await stage_gis_api_data(io, db, uuid, clock, config)
 
 if __name__ == '__main__':

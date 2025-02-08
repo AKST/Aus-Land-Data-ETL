@@ -1,5 +1,4 @@
 from pprint import pformat
-from typing import List
 import pytest
 
 from ..type import Stmt
@@ -50,7 +49,6 @@ def test_drop_truncate(snapshot, cascade: bool, sql: str):
 
     codegen = list(truncate(sql_as_operations(sql), cascade))
     snapshot.assert_match(pformat(codegen), "truncate")
-
 
 @pytest.mark.parametrize("sql", [
     *[
@@ -114,8 +112,8 @@ def test_create_table_add_fk(snapshot, sql: str):
 def test_create_table_rm_fk(
         snapshot, sql: str,
         fks_for_table: FkMap,
-        allow: List[str],
-        disallow: List[str],
+        allow: list[str],
+        disallow: list[str],
 ):
     codegen = list(remove_foreign_keys(sql_as_operations(sql), fks_for_table))
     snapshot.assert_match(pformat(codegen), "remove_foreign_keys")

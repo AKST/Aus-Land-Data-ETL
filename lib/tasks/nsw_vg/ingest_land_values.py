@@ -26,7 +26,7 @@ from lib.service.http import AbstractClientSession
 from lib.service.static_environment import StaticEnvironmentInitialiser
 from lib.service.uuid import *
 from lib.tasks.fetch_static_files import get_session
-from lib.tooling.schema import SchemaController, SchemaDiscovery, SchemaCommand
+from lib.tooling.schema import create_schema_controller, SchemaCommand
 
 from .config import NswVgTaskConfig
 
@@ -50,12 +50,12 @@ async def ingest_land_values(cfg: NswVgTaskConfig.LandValue.Main,
                     session: AbstractClientSession) -> None:
     static_env = StaticEnvironmentInitialiser.create(io, session)
     logger = logging.getLogger(f'{__name__}.spawn')
-    controller = SchemaController(io, db, SchemaDiscovery.create(io))
+    controller = create_schema_controller(io, db)
     if cfg.truncate_raw_earlier:
         logger.info('dropping earlier raw data')
-        await controller.command(SchemaCommand.Truncate(
+        await controller.command(SchemaCommand.truncate(
             ns='nsw_vg',
-            range=range(2, 3),
+            ns_range=range(2, 3),
             cascade=True,
         ))
     recv_q: MpQueue = MpQueue()

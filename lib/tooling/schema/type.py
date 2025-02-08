@@ -17,37 +17,70 @@ SchemaNamespace = Literal[
     'nsw_vg',
 ]
 
+class Transform:
+    @dataclass
+    class T(ABC):
+        ...
+
+    @dataclass
+    class Create(T):
+        omit_foreign_keys: bool
+        run_raw_schema: bool
+
+    @dataclass
+    class ReIndex(T):
+        allowed: set[EntityKind]
+
+    @dataclass
+    class AddForeignKeys(T):
+        pass
+
+    @dataclass
+    class RemoveForeignKeys(T):
+        pass
+
+    @dataclass
+    class Drop(T):
+        cascade: bool
+
+    @dataclass
+    class Truncate(T):
+        cascade: bool
+
+@dataclass
 class Command:
-    @dataclass
-    class BaseCommand:
-        ns: SchemaNamespace
-        range: Optional[range] = field(default=None)
-        dryrun: bool = field(default=False)
+    ns: SchemaNamespace
+    ns_range: Optional[range]
+    dryrun: bool
+    transform: Transform.T
 
-    @dataclass
-    class Create(BaseCommand):
-        omit_foreign_keys: bool = field(default=False)
-        run_raw_schema: bool = field(default=False)
+    @staticmethod
+    def create(ns: SchemaNamespace, ns_range: Optional[range] = None, dryrun: bool = False,
+               omit_foreign_keys: bool = False, run_raw_schema: bool = False):
+        return Command(ns, ns_range, dryrun, Transform.Create(omit_foreign_keys, run_raw_schema))
 
-    @dataclass
-    class ReIndex(BaseCommand):
-        allowed: set[EntityKind] = field(default_factory=lambda: set())
+    @staticmethod
+    def reindex(ns: SchemaNamespace, ns_range: Optional[range] = None, dryrun: bool = False,
+                allowed: Optional[set[EntityKind]] = None):
+        return Command(ns, ns_range, dryrun, Transform.ReIndex(allowed or set()))
 
-    @dataclass
-    class AddForeignKeys(BaseCommand):
-        pass
+    @staticmethod
+    def drop(ns: SchemaNamespace, ns_range: Optional[range] = None, dryrun: bool = False,
+             cascade: bool = False):
+        return Command(ns, ns_range, dryrun, Transform.Drop(cascade))
 
-    @dataclass
-    class RemoveForeignKeys(BaseCommand):
-        pass
+    @staticmethod
+    def truncate(ns: SchemaNamespace, ns_range: Optional[range] = None, dryrun: bool = False,
+                 cascade: bool = False):
+        return Command(ns, ns_range, dryrun, Transform.Truncate(cascade))
 
-    @dataclass
-    class Drop(BaseCommand):
-        cascade: bool = field(default=False)
+    @staticmethod
+    def add_fk(ns: SchemaNamespace, ns_range: Optional[range] = None, dryrun: bool = False):
+        return Command(ns, ns_range, dryrun, Transform.AddForeignKeys())
 
-    @dataclass
-    class Truncate(BaseCommand):
-        cascade: bool = field(default=False)
+    @staticmethod
+    def rm_fk(ns: SchemaNamespace, ns_range: Optional[range] = None, dryrun: bool = False):
+        return Command(ns, ns_range, dryrun, Transform.RemoveForeignKeys())
 
 @dataclass
 class Ref:
@@ -104,7 +137,7 @@ class Stmt:
     @dataclass
     class AlterTable(Op, ABC):
         altered_table: Ref
-        actions: list['AlterTableAction']
+        actions: list['AlterTableAction.Op']
 
 class AlterTableAction:
     @dataclass

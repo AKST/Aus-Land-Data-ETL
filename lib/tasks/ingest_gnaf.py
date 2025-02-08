@@ -27,7 +27,7 @@ if __name__ == '__main__':
     import resource
 
     from lib.defaults import INSTANCE_CFG
-    from lib.tooling.schema import SchemaCommand, SchemaController, SchemaDiscovery
+    from lib.tooling.schema import SchemaCommand, create_schema_controller
     from lib.utility.logging import config_logging
     from .fetch_static_files import get_session, initialise
 
@@ -54,10 +54,9 @@ if __name__ == '__main__':
             raise ValueError('no gnaf publication')
 
         if args.reset_schema:
-            discovery = SchemaDiscovery.create(io)
-            controller = SchemaController(io, db, discovery)
-            await controller.command(SchemaCommand.Drop(ns='gnaf', cascade=True))
-            await controller.command(SchemaCommand.Create(ns='gnaf'))
+            controller = create_schema_controller(io, db)
+            await controller.command(SchemaCommand.drop(ns='gnaf', cascade=True))
+            await controller.command(SchemaCommand.create(ns='gnaf'))
 
         config = gnaf.GnafConfig(
             target=env.gnaf.publication,

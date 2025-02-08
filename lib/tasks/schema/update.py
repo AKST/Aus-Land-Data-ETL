@@ -5,7 +5,7 @@ from sys import maxsize
 
 from lib.service.database import DatabaseServiceImpl, DatabaseService
 from lib.service.io import IoService, IoServiceImpl
-from lib.tooling.schema import SchemaController, SchemaDiscovery, SchemaCommand
+from lib.tooling.schema import create_schema_controller, SchemaCommand
 from lib.tooling.schema.config import ns_dependency_order, schema_ns
 from lib.tooling.schema.type import SchemaNamespace
 
@@ -24,8 +24,7 @@ async def update_schema(
     io: IoService,
 ) -> None:
     _logger.info('initalising nsw_vg db schema')
-    discovery = SchemaDiscovery.create(io)
-    controller = SchemaController(io, db, discovery)
+    controller = create_schema_controller(io, db)
 
     ordered = [p for p in ns_dependency_order if p in config.packages]
     drop_list = reversed(ordered) if config.revert else []
@@ -48,7 +47,7 @@ async def update_schema(
     for ns in drop_list:
         try:
             r = get_range(ns)
-            await controller.command(SchemaCommand.Drop(ns=ns, range=r, cascade=True))
+            await controller.command(SchemaCommand.drop(ns=ns, ns_range=r, cascade=True))
         except Exception as e:
             logging.error(f'failed on dropping {ns}')
             raise e
@@ -56,9 +55,9 @@ async def update_schema(
     for ns in create_list:
         try:
             r = get_range(ns)
-            command = SchemaCommand.Create(ns=ns, range=r)
+            command = SchemaCommand.create(ns=ns, ns_range=r)
             allowed_schemas = {'nsw_lrs', 'nsw_gnb'}
-            await controller.command(SchemaCommand.Create(ns=ns, range=r))
+            await controller.command(SchemaCommand.create(ns=ns, ns_range=r))
         except Exception as e:
             logging.error(f'failed on creating {ns}')
             raise e

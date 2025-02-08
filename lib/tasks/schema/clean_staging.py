@@ -3,25 +3,20 @@ import logging
 from lib.service.io import IoService, IoServiceImpl
 from lib.service.database import DatabaseServiceImpl, DatabaseService, DatabaseConfig
 
-from lib.tooling.schema import (
-    SchemaCommand,
-    SchemaController,
-    SchemaDiscovery,
-)
+from lib.tooling.schema import SchemaCommand, create_schema_controller
 
 _logger = logging.getLogger(__name__)
 
 async def clean_staging_data(db: DatabaseService, io: IoService):
     _logger.info('cleaning staging data')
-    discovery = SchemaDiscovery.create(io)
-    controller = SchemaController(io, db, discovery)
+    controller = create_schema_controller(io, db)
 
     await controller.command(
-        SchemaCommand.Truncate(ns='nsw_vg', range=range(2, 6), cascade=True),
+        SchemaCommand.truncate(ns='nsw_vg', ns_range=range(2, 6), cascade=True),
     )
 
     await controller.command(
-        SchemaCommand.Truncate(ns='nsw_spatial', range=range(2, 3), cascade=True),
+        SchemaCommand.truncate(ns='nsw_spatial', ns_range=range(2, 3), cascade=True),
     )
     _logger.info('staging data cleaned')
 
