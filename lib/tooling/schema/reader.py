@@ -185,6 +185,16 @@ def expr_as_op(expr: Expression) -> Optional[Stmt.Op]:
             actions = list(map(get_alter_table_action, expr.actions))
             table_r = get_identifiers(id_info)
             return Stmt.AlterTable(expr, table_r, actions)
+        case sql_expr.Command(this="ALTER", expression=e) if e.strip().lower().startswith('table'):
+            e = e.strip()
+            p_set_schema = r"Table\s+(?:(\S+)\.)?(\S+)\s+SET\s+SCHEMA\s+(\S+)"
+            m_set_schema = re.match(p_set_schema, e, re.IGNORECASE)
+            if m_set_schema:
+                a_table = Ref(m_set_schema.group(1), m_set_schema.group(2))
+                action = AlterTableAction.SetSchema(None, m_set_schema.group(3))
+                print(m_set_schema.groups())
+                return Stmt.AlterTable(expr, a_table, [action])
+            raise TypeError(f'unknown alter statement "{e}"')
         case sql_expr.Semicolon():
             return None
         case other:

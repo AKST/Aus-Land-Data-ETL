@@ -3,7 +3,7 @@ import pytest
 import sqlglot
 
 from ..reader import sql_as_operations
-from ..type import Ref
+from ..type import Ref, AlterTableAction
 
 @pytest.mark.parametrize("sql", [
     "CREATE SCHEMA s",
@@ -77,6 +77,17 @@ def test_schema_for_parition():
     schema = sql_as_operations(sql)
     create_parition = next(o for o in schema.operations)
     assert create_parition.partition.schema_name == 'a'
+
+@pytest.mark.parametrize('ref', [
+    Ref(None, 'a'),
+    Ref('n', 'a'),
+])
+def test_alter_table_set_schema(ref):
+    sql = f"ALTER TABLE {ref} SET SCHEMA b;"
+    schema = sql_as_operations(sql)
+    alt_table = next(o for o in schema.operations)
+    assert alt_table.altered_table == ref
+    assert alt_table.actions == [AlterTableAction.SetSchema(None, 'b')]
 
 def test_normal_index():
     sql = "CREATE INDEX idx_a ON a (id)"

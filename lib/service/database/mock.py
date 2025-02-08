@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 import re
 from typing import Any, Self, Protocol, Sequence
 
+from .config import DatabaseConfig
 from .type import DatabaseService, CursorLike, ConnectionLike, CopyLike
 
 def clean_sql(sql: str) -> str:
@@ -81,6 +82,13 @@ class MockConnection(ConnectionLike):
 @dataclass
 class MockDatabaseService(DatabaseService):
     state: MockDbState = field(default_factory=lambda: MockDbState())
+    config: DatabaseConfig = field(default_factory=lambda: DatabaseConfig(
+        dbname='mockdb',
+        host='mockhost',
+        port=9999,
+        user='mockuser',
+        password='mockpasswork',
+    ))
 
     async def open(self):
         return

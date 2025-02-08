@@ -142,7 +142,7 @@ class Stmt:
 class AlterTableAction:
     @dataclass
     class Op(ABC):
-        expr_tree: Expression = field(repr=False)
+        expr_tree: Optional[Expression] = field(repr=False)
 
     @dataclass
     class SetSchema(Op):

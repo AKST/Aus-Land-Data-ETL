@@ -3,7 +3,18 @@ from sqlglot import expressions, Expression
 from typing import Dict, Iterator, List, Optional, Set, Tuple, Type
 
 from lib.service.database import DbCursorLike
-from ..type import Ref, Stmt, SchemaSyntax, EntityKind
+from ..type import Ref, Stmt, SchemaSyntax, EntityKind, AlterTableAction as AtAct
+
+def generate_actions(operation: Expression, table: Ref, actions: list[AtAct.Op]) -> Iterator[str]:
+    for action in actions:
+        match action:
+            case AtAct.SetSchema(_, new_schema):
+                yield f'ALTER TABLE {table} SET SCHEMA {new_schema};'
+            case AtAct.ColumnAddForeignKey(_, const_name, const_col, ref_table, ref_col):
+                yield f"ALTER TABLE {table} ADD CONSTRAINT {const_name} " \
+                      f"FOREIGN KEY ({const_col}) REFERENCES {ref_table}({ref_col});"
+            case other:
+                raise TypeError(f'have not handled {other} in {operation}')
 
 def create(commands: SchemaSyntax, omit_foreign_keys: bool) -> Iterator[str]:
     for operation in commands.operations:
@@ -31,8 +42,13 @@ def create(commands: SchemaSyntax, omit_foreign_keys: bool) -> Iterator[str]:
                 yield expr.sql(dialect='postgres')
             case Stmt.OpaqueDoBlock(expr):
                 yield expr.sql(dialect='postgres')
-            case Stmt.AlterTable(expr):
-                continue
+            case Stmt.AlterTable(expr, table_name, actions):
+                if omit_foreign_keys:
+                    actions = [
+                        a for a in actions
+                        if not isinstance(a, AtAct.ColumnAddForeignKey)
+                    ]
+                yield from generate_actions(expr, table_name, actions)
             case other:
                 raise TypeError(f'have not handled {other}')
 
@@ -56,7 +72,9 @@ def drop(commands: SchemaSyntax, cascade: bool = False) -> Iterator[str]:
             case Stmt.CreateView(expr, ref, materialized):
                 kind = 'MATERIALIZED VIEW' if materialized else 'view'
                 yield f'DROP {kind} IF EXISTS {str(ref)}{sfx}'
-            case Stmt.OpaqueDoBlock(expr):
+            case Stmt.OpaqueDoBlock():
+                continue
+            case Stmt.AlterTable():
                 continue
             case other:
                 raise TypeError(f'have not handled {other}')
@@ -111,8 +129,12 @@ def add_foreign_keys(contents: SchemaSyntax) -> Iterator[str]:
                 continue
             case Stmt.OpaqueDoBlock(expr):
                 continue
-            case Stmt.AlterTable(expr):
-                continue
+            case Stmt.AlterTable(expr, table, actions):
+                yield from generate_actions(expr, table, [
+                    action
+                    for action in actions
+                    if isinstance(action, AtAct.ColumnAddForeignKey)
+                ])
             case other:
                 raise TypeError(f'have not handled {other}')
 
