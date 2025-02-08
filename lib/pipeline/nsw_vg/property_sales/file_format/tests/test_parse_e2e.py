@@ -4,6 +4,7 @@ from datetime import datetime
 
 from lib.pipeline.nsw_vg.property_sales.data import PropertySaleDatFileMetaData
 from lib.service.io import IoServiceImpl
+from lib.service.uuid.mocks import MockUuidService
 
 from ..text_source import *
 from ..parse import PropertySalesRowParserFactory
@@ -21,9 +22,13 @@ async def test_end_to_end(file_name: str,
                           published_year: int,
                           download_date: datetime | None):
     io = IoServiceImpl.create(1)
+    uuid = MockUuidService(values=[str(i) for i in range(0, 10)])
     s_factory = PropertySalesRowParserFactory(io,
+                                              uuid,
                                               StringTextSource)
+    uuid = MockUuidService(values=[str(i) for i in range(0, 10)])
     b_factory = PropertySalesRowParserFactory(io,
+                                              uuid,
                                               BufferedFileReaderTextSource,
                                               chunk_size=8 * 2 ** 5)
     file_path = f'./_fixtures/{file_name}'
@@ -54,9 +59,13 @@ async def test_snapshot(snapshot,
                         published_year: int,
                         download_date: datetime | None):
     io = IoServiceImpl.create(1)
+    uuid = MockUuidService(values=[str(i) for i in range(0, 10)])
     s_factory = PropertySalesRowParserFactory(io,
+                                              uuid,
                                               StringTextSource)
+    uuid = MockUuidService(values=[str(i) for i in range(0, 10)])
     b_factory = PropertySalesRowParserFactory(io,
+                                              uuid,
                                               BufferedFileReaderTextSource,
                                               chunk_size=8 * 2 ** 5)
     file_path = f'./_fixtures/{file_name}'

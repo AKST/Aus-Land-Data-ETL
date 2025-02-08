@@ -36,14 +36,19 @@ class CurrentFormatFactory(AbstractFormatFactory):
     zone_standard: t.ZoningKind = 'ep&a_2006'
     zone_code_len: int = 3
 
-    def __init__(self: Self, uuid: UuidService, year: int, file_path: str):
+    def __init__(self: Self,
+                 uuid: UuidService,
+                 year: int,
+                 file_path: str,
+                 file_path_uuid: str):
         self.uuid = uuid
         self.year = year
         self.file_path = file_path
+        self.file_path_uuid = file_path_uuid
 
     @classmethod
     def create(Cls, uuid: UuidService, year: int, file_path: str) -> 'CurrentFormatFactory':
-        return CurrentFormatFactory(uuid, year, file_path)
+        return CurrentFormatFactory(uuid, year, file_path, uuid.get_uuid4_hex())
 
     def create_a(self: Self, pos: int, row: List[str], variant: Optional[str]):
         return t.SaleRecordFile(
@@ -132,7 +137,7 @@ class Legacy2002Format(CurrentFormatFactory):
 
     @classmethod
     def create(cls, uuid: UuidService, year: int, file_path: str) -> 'Legacy2002Format':
-        return Legacy2002Format(uuid, year, file_path)
+        return Legacy2002Format(uuid, year, file_path, uuid.get_uuid4_hex())
 
     def create_a(self: Self, pos: int, row: List[str], variant: Optional[str]):
         return t.SaleRecordFile(
@@ -183,14 +188,19 @@ class Legacy2002Format(CurrentFormatFactory):
             raise TypeError(f'unknown variant {variant}')
 
 class Legacy1990Format(AbstractFormatFactory):
-    def __init__(self: Self, uuid: UuidService, year: int, file_path: str):
+    def __init__(self: Self,
+                 uuid: UuidService,
+                 year: int,
+                 file_path: str,
+                 file_path_uuid: str):
         self.uuid = uuid
         self.year = year
         self.file_path = file_path
+        self.file_path_uuid = file_path_uuid
 
     @classmethod
     def create(cls, uuid: UuidService, year: int, file_path: str):
-        return Legacy1990Format(uuid, year, file_path)
+        return Legacy1990Format(uuid, year, file_path, uuid.get_uuid4_hex())
 
     def create_a(self: Self, pos: int, row: List[str], variant: Optional[str]):
         """

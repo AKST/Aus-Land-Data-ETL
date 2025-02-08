@@ -89,24 +89,25 @@ async def ingest_all(config: IngestConfig):
         io_service,
     )
 
-    await ingest_abs(
-        AbsIngestionConfig(
-            ingest_sources=[
-                ABS_MAIN_STRUCTURES,
-                NON_ABS_MAIN_STRUCTURES,
-                INDIGENOUS_STRUCTURES,
-            ],
-            worker_count=4,
-            worker_config=AbsWorkerConfig(
-                db_config=db_service_config,
-                db_connections=2,
-                enable_logging=True,
-                enable_logging_debug=False,
+    if config.enable_abs:
+        await ingest_abs(
+            AbsIngestionConfig(
+                ingest_sources=[
+                    ABS_MAIN_STRUCTURES,
+                    NON_ABS_MAIN_STRUCTURES,
+                    INDIGENOUS_STRUCTURES,
+                ],
+                worker_count=4,
+                worker_config=AbsWorkerConfig(
+                    db_config=db_service_config,
+                    db_connections=2,
+                    enable_logging=True,
+                    enable_logging_debug=False,
+                ),
             ),
-        ),
-        db_service,
-        io_service,
-    )
+            db_service,
+            io_service,
+        )
 
 
     await ingest_nswvg(
