@@ -6,23 +6,22 @@
 --   - `basis_date_N` is `event.effective_date`
 --
 CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_a_legacy (
-    ps_row_a_legacy_id UUID NOT NULL,
+    a_legacy_source_id UUID NOT NULL,
     position bigint NOT NULL,
     file_path TEXT NOT NULL UNIQUE,
+    file_source_id UUID NOT NULL,
     year_of_sale INT NOT NULL,
     submitting_user_id TEXT,
     date_provided DATE NOT NULL
 );
 
-CREATE INDEX idx_ps_row_a_legacy_ps_row_a_legacy_id
-    ON nsw_vg_raw.ps_row_a_legacy(ps_row_a_legacy_id);
-CREATE INDEX idx_ps_row_a_legacy_file_path
-    ON nsw_vg_raw.ps_row_a_legacy(file_path);
+CREATE INDEX idx_ps_row_a_legacy_a_legacy_source_id
+    ON nsw_vg_raw.ps_row_a_legacy(a_legacy_source_id);
 
 CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_b_legacy (
-    ps_row_b_legacy_id UUID NOT NULL,
+    b_legacy_source_id UUID NOT NULL,
     position bigint NOT NULL,
-    file_path TEXT NOT NULL,
+    file_source_id UUID NOT NULL,
     district_code INT NOT NULL,
     source TEXT,
     valuation_number varchar(16),
@@ -41,36 +40,34 @@ CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_b_legacy (
     comp_code varchar(3),
     zone_code varchar(4),
     zone_standard nsw_vg.zoning_standard,
-    UNIQUE (file_path, position)
 );
 
-CREATE INDEX idx_ps_row_b_legacy_ps_row_b_legacy_id
-    ON nsw_vg_raw.ps_row_b_legacy(ps_row_b_legacy_id);
+CREATE INDEX idx_ps_row_b_legacy_b_legacy_source_i
+    ON nsw_vg_raw.ps_row_b_legacy(b_legacy_source_id);
 
 --
 -- # Non Legacy
 --
 
 CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_a (
-    ps_row_a_id UUID UNIQUE NOT NULL,
+    a_source_id UUID UNIQUE NOT NULL,
     position bigint NOT NULL,
     year_of_sale INT NOT NULL,
     file_path TEXT NOT NULL UNIQUE,
+    file_source_id UUID NOT NULL,
     file_type TEXT,
     district_code INT NOT NULL,
     date_provided DATE NOT NULL,
     submitting_user_id TEXT NOT NULL
 );
 
-CREATE INDEX idx_ps_row_a_ps_row_a_id
-    ON nsw_vg_raw.ps_row_a(ps_row_a_id);
-CREATE INDEX idx_ps_row_a_file_path
-    ON nsw_vg_raw.ps_row_a(file_path);
+CREATE INDEX idx_ps_row_a_a_source_id
+    ON nsw_vg_raw.ps_row_a(a_source_id);
 
 CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_b (
-    ps_row_b_id UUID UNIQUE NOT NULL,
+    b_source_id UUID UNIQUE NOT NULL,
     position bigint NOT NULL,
-    file_path TEXT NOT NULL,
+    file_source_id UUID NOT NULL,
     district_code INT NOT NULL,
     property_id INT,
     sale_counter INT NOT NULL,
@@ -102,38 +99,44 @@ CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_b (
     sale_code varchar(3),
     interest_of_sale INT,
     dealing_number varchar(10) NOT NULL,
-    UNIQUE (file_path, position)
 );
 
-CREATE INDEX idx_ps_row_b_ps_row_b_id
-    ON nsw_vg_raw.ps_row_b(ps_row_b_id);
+CREATE INDEX idx_ps_row_b_b_source_id
+    ON nsw_vg_raw.ps_row_b(b_source_id);
+
+CREATE INDEX idx_ps_row_b_file_source_id_sale_counter
+    ON nsw_vg_raw.ps_row_b(file_source_id, sale_counter);
 
 CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_c (
-    ps_row_c_id UUID UNIQUE NOT NULL,
+    c_source_id UUID UNIQUE NOT NULL,
     position bigint NOT NULL,
-    file_path TEXT,
+    file_source_id UUID NOT NULL,
     district_code INT NOT NULL,
     property_id INT,
     sale_counter INT NOT NULL,
     date_provided DATE NOT NULL,
     property_description TEXT,
-    UNIQUE (file_path, position)
 );
 
-CREATE INDEX idx_ps_row_c_ps_row_c_id
-    ON nsw_vg_raw.ps_row_c(ps_row_c_id);
+CREATE INDEX idx_ps_row_c_c_source_id
+    ON nsw_vg_raw.ps_row_c(c_source_id);
+
+CREATE INDEX idx_ps_row_c_file_source_id_sale_counter
+    ON nsw_vg_raw.ps_row_c(file_source_id, sale_counter);
 
 CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_d (
-    ps_row_d_id UUID UNIQUE NOT NULL,
+    d_source_id UUID UNIQUE NOT NULL,
     position bigint NOT NULL,
-    file_path TEXT,
+    file_source_id UUID NOT NULL,
     district_code INT NOT NULL,
     property_id INT,
     sale_counter INT NOT NULL,
     date_provided DATE NOT NULL,
     participant nsw_lrs.sale_participant NOT NULL,
-    UNIQUE (file_path, position)
 );
 
-CREATE INDEX idx_ps_row_d_ps_row_d_id
-    ON nsw_vg_raw.ps_row_d(ps_row_d_id);
+CREATE INDEX idx_ps_row_d_d_source_id
+    ON nsw_vg_raw.ps_row_d(d_source_id);
+
+CREATE INDEX idx_ps_row_d_file_source_id_sale_counter
+    ON nsw_vg_raw.ps_row_d(file_source_id, sale_counter);

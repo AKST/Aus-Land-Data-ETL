@@ -40,11 +40,11 @@ class CurrentFormatFactory(AbstractFormatFactory):
                  uuid: UuidService,
                  year: int,
                  file_path: str,
-                 file_path_uuid: str):
+                 file_source_id: str):
         self.uuid = uuid
         self.year = year
         self.file_path = file_path
-        self.file_path_uuid = file_path_uuid
+        self.file_source_id = file_source_id
 
     @classmethod
     def create(Cls, uuid: UuidService, year: int, file_path: str) -> 'CurrentFormatFactory':
@@ -52,10 +52,11 @@ class CurrentFormatFactory(AbstractFormatFactory):
 
     def create_a(self: Self, pos: int, row: List[str], variant: Optional[str]):
         return t.SaleRecordFile(
-            ps_row_a_id=self.uuid.get_uuid4_hex(),
+            a_source_id=self.uuid.get_uuid4_hex(),
             position=pos,
             year_of_sale=self.year,
             file_path=self.file_path,
+            file_source_id=self.file_source_id,
             file_type=row[0] or None,
             district_code=read_int(row, 1, 'district_code'),
             date_provided=read_datetime(row, 2, 'date_provided'),
@@ -64,9 +65,9 @@ class CurrentFormatFactory(AbstractFormatFactory):
 
     def create_b(self: Self, pos: int, row: List[str], a_record: Any, variant: Optional[str]):
         return t.SalePropertyDetails(
-            ps_row_b_id=self.uuid.get_uuid4_hex(),
+            b_source_id=self.uuid.get_uuid4_hex(),
             position=pos,
-            file_path=self.file_path,
+            file_source_id=self.file_source_id,
             parent=a_record,
             district_code=read_int(row, 0, 'district_code'),
             property_id=read_optional_int(row, 1, 'property_id'),
@@ -96,9 +97,9 @@ class CurrentFormatFactory(AbstractFormatFactory):
 
     def create_c(self: Self, pos: int, row: List[str], b_record: Any, variant: Optional[str]):
         return t.SalePropertyLegalDescription(
-            ps_row_c_id=self.uuid.get_uuid4_hex(),
+            c_source_id=self.uuid.get_uuid4_hex(),
             position=pos,
-            file_path=self.file_path,
+            file_source_id=self.file_source_id,
             parent=b_record,
             district_code=read_int(row, 0, 'district_code'),
             property_id=read_optional_int(row, 1, 'property_id'),
@@ -109,9 +110,9 @@ class CurrentFormatFactory(AbstractFormatFactory):
 
     def create_d(self: Self, pos: int, row: List[str], c_record: Any, variant: Optional[str]):
         return t.SaleParticipant(
-            ps_row_d_id=self.uuid.get_uuid4_hex(),
+            d_source_id=self.uuid.get_uuid4_hex(),
             position=pos,
-            file_path=self.file_path,
+            file_source_id=self.file_source_id,
             parent=c_record,
             district_code=read_int(row, 0, 'district_code'),
             property_id=read_optional_int(row, 1, 'property_id'),
@@ -141,9 +142,10 @@ class Legacy2002Format(CurrentFormatFactory):
 
     def create_a(self: Self, pos: int, row: List[str], variant: Optional[str]):
         return t.SaleRecordFile(
-            ps_row_a_id=self.uuid.get_uuid4_hex(),
+            a_source_id=self.uuid.get_uuid4_hex(),
             position=pos,
             file_path=self.file_path,
+            file_source_id=self.file_source_id,
             year_of_sale=self.year,
             file_type=None,
             district_code=read_int(row, 0, 'district_code'),
@@ -156,9 +158,9 @@ class Legacy2002Format(CurrentFormatFactory):
             return super().create_c(pos, row, b_record, variant)
         elif variant == 'missing_property_id':
             return t.SalePropertyLegalDescription(
-                ps_row_c_id=self.uuid.get_uuid4_hex(),
+                c_source_id=self.uuid.get_uuid4_hex(),
                 position=pos,
-                file_path=self.file_path,
+                file_source_id=self.file_source_id,
                 parent=b_record,
                 district_code=read_int(row, 0, 'district_code'),
                 property_id=None,
@@ -174,9 +176,9 @@ class Legacy2002Format(CurrentFormatFactory):
             return super().create_d(pos, row, c_record, variant)
         elif variant == 'missing_property_id':
             return t.SaleParticipant(
-                ps_row_d_id=self.uuid.get_uuid4_hex(),
+                d_source_id=self.uuid.get_uuid4_hex(),
                 position=pos,
-                file_path=self.file_path,
+                file_source_id=self.file_source_id,
                 parent=c_record,
                 district_code=read_int(row, 0, 'district_code'),
                 property_id=None,
@@ -192,11 +194,11 @@ class Legacy1990Format(AbstractFormatFactory):
                  uuid: UuidService,
                  year: int,
                  file_path: str,
-                 file_path_uuid: str):
+                 file_source_id: str):
         self.uuid = uuid
         self.year = year
         self.file_path = file_path
-        self.file_path_uuid = file_path_uuid
+        self.file_source_id = file_source_id
 
     @classmethod
     def create(cls, uuid: UuidService, year: int, file_path: str):
@@ -208,9 +210,10 @@ class Legacy1990Format(AbstractFormatFactory):
         to maintain some level of consistency with the later formats.
         """
         return t.SaleRecordFileLegacy(
-            ps_row_a_legacy_id=self.uuid.get_uuid4_hex(),
+            a_legacy_source_id=self.uuid.get_uuid4_hex(),
             position=pos,
             file_path=self.file_path,
+            file_source_id=self.file_source_id,
             year_of_sale=self.year,
             submitting_user_id=row[1],
             date_provided=read_datetime(row, 2, 'date_provided'),
@@ -218,9 +221,9 @@ class Legacy1990Format(AbstractFormatFactory):
 
     def create_b(self: Self, pos: int, row: List[str], a_record: Any, variant: Optional[str]):
         return t.SalePropertyDetails1990(
-            ps_row_b_legacy_id=self.uuid.get_uuid4_hex(),
+            b_legacy_source_id=self.uuid.get_uuid4_hex(),
             position=pos,
-            file_path=self.file_path,
+            file_source_id=self.file_source_id,
             parent=a_record,
             district_code=read_int(row, 0, 'district_code'),
             source=row[1] or None,

@@ -17,7 +17,8 @@ SELECT DISTINCT t.street_name, l.locality_id FROM
 
 WITH sourced_addresses AS (
   SELECT DISTINCT ON (property_id, strata_lot_number, effective_date)
-         source_id, property_id, property_name,
+         b_source_id as source_id,
+         property_id, property_name,
          strata_lot_number, unit_number,
          house_number as street_number,
          upper(street_name) as street_name,
@@ -25,7 +26,6 @@ WITH sourced_addresses AS (
          COALESCE(contract_date, settlement_date) as effective_date,
          postcode
     FROM nsw_vg_raw.ps_row_b as r
-    LEFT JOIN nsw_vg_raw.ps_row_b_source USING (ps_row_b_id)
     WHERE property_id IS NOT NULL
     ORDER BY property_id, strata_lot_number, effective_date, date_provided DESC)
 

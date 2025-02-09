@@ -59,7 +59,7 @@ async def ingest_deduplicate(
 
     if config.truncate:
         await run_commands([
-            SchemaCommand.truncate(ns='nsw_vg', cascade=True, ns_range=range(4, 5)),
+            SchemaCommand.truncate(ns='nsw_vg', cascade=True, ns_range=range(4, 6)),
             SchemaCommand.truncate(ns='nsw_gnb', cascade=True),
             SchemaCommand.truncate(ns='nsw_lrs', cascade=True),
             SchemaCommand.truncate(ns='nsw_planning', cascade=True),

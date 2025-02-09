@@ -13,9 +13,10 @@ class BasePropertySaleFileRow(abc.ABC):
 
 @dataclass
 class SaleRecordFileLegacy(BasePropertySaleFileRow):
-    ps_row_a_legacy_id: str
+    a_legacy_source_id: str = field(repr=False)
     position: int
     file_path: str = field(repr=False)
+    file_source_id: str = field(repr=False)
     year_of_sale: int = field(repr=False)
     submitting_user_id: Optional[str]
     date_provided: datetime
@@ -25,9 +26,9 @@ class SaleRecordFileLegacy(BasePropertySaleFileRow):
 
 @dataclass
 class SalePropertyDetails1990(BasePropertySaleFileRow):
-    ps_row_b_legacy_id: str
+    b_legacy_source_id: str = field(repr=False)
     position: int
-    file_path: str = field(repr=False)
+    file_source_id: str = field(repr=False)
     parent: SaleRecordFileLegacy = field(repr=False)
     district_code: int
     source: Optional[str]
@@ -54,10 +55,11 @@ class SalePropertyDetails1990(BasePropertySaleFileRow):
 
 @dataclass
 class SaleRecordFile(BasePropertySaleFileRow):
-    ps_row_a_id: str
+    a_source_id: str = field(repr=False)
     position: int
     year_of_sale: int
     file_path: str = field(repr=False)
+    file_source_id: str = field(repr=False)
     file_type: Optional[str]
     district_code: int
     date_provided: datetime
@@ -68,9 +70,9 @@ class SaleRecordFile(BasePropertySaleFileRow):
 
 @dataclass
 class SalePropertyDetails(BasePropertySaleFileRow):
-    ps_row_b_id: str
+    b_source_id: str = field(repr=False)
     position: int
-    file_path: str = field(repr=False)
+    file_source_id: str = field(repr=False)
     parent: SaleRecordFile = field(repr=False)
     district_code: int
     property_id: Optional[int]
@@ -106,9 +108,9 @@ class SalePropertyDetails(BasePropertySaleFileRow):
 
 @dataclass
 class SalePropertyLegalDescription(BasePropertySaleFileRow):
-    ps_row_c_id: str
+    c_source_id: str = field(repr=False)
     position: int
-    file_path: str = field(repr=False)
+    file_source_id: str = field(repr=False)
     parent: SalePropertyDetails = field(repr=False)
 
     district_code: int
@@ -127,9 +129,9 @@ class SalePropertyLegalDescription(BasePropertySaleFileRow):
 
 @dataclass
 class SaleParticipant(BasePropertySaleFileRow):
-    ps_row_d_id: str
+    d_source_id: str = field(repr=False)
     position: int
-    file_path: str = field(repr=False)
+    file_source_id: str = field(repr=False)
     parent: SalePropertyLegalDescription = field(repr=False)
     district_code: int
     """

@@ -11,7 +11,7 @@ INSERT INTO nsw_lrs.nature_of_property(
     nature_of_property,
     strata_lot_number)
 SELECT DISTINCT ON (effective_date, property_id, strata_lot_number)
-    source_id,
+    b_source_id,
     effective_date,
     property_id,
     (CASE
@@ -22,9 +22,11 @@ SELECT DISTINCT ON (effective_date, property_id, strata_lot_number)
       WHEN nature_of_property = '3' THEN 'Other'
     END)::nsw_lrs.property_nature,
     strata_lot_number
-  FROM pg_temp.sourced_raw_property_sales_b b
+  FROM nsw_vg_raw.ps_row_b_complementary
+  LEFT JOIN nsw_vg_raw.ps_row_b USING (b_source_id)
   WHERE nature_of_property IS NOT NULL
-    AND property_id IS NOT NULL;
+    AND property_id IS NOT NULL
+    AND canonical;
 
 SET session_replication_role = 'origin';
 SELECT meta.check_constraints('nsw_lrs', 'nature_of_property');

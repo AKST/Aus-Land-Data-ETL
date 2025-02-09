@@ -28,7 +28,7 @@ WITH
   -- to prioritise the most complete and up to date rows.
   --
   with_rank AS (
-    SELECT ps_row_b_id,
+    SELECT b_source_id,
            ROW_NUMBER() OVER (
              PARTITION BY dealing_number, property_id, strata_lot_number
              ORDER BY (
@@ -41,103 +41,44 @@ WITH
            ) AS score
       FROM with_baseline_information)
 
-SELECT c.source_id,
-       d.file_source_id,
-       b.*,
-       (e.source_id IS NOT NULL) as seen_in_land_values
-  INTO TEMP TABLE pg_temp.sourced_raw_property_sales_b
+INSERT INTO nsw_vg_raw.ps_row_b_complementary(
+  b_source_id,
+  effective_date,
+  seen_in_land_values,
+  canonical)
+SELECT b_source_id,
+       effective_date,
+       (e.source_id IS NOT NULL),
+       (r.score = 1)
   FROM with_rank r
-  LEFT JOIN with_baseline_information AS b USING (ps_row_b_id)
-  LEFT JOIN nsw_vg_raw.ps_row_b_source AS c USING (ps_row_b_id)
-  LEFT JOIN meta.source_file AS d USING (source_id)
-  LEFT JOIN nsw_vg_raw.land_value_row_complement AS e USING (property_id, effective_date)
-  WHERE r.score = 1;
-
-
-CREATE INDEX idx_sourced_raw_property_sales_b_sale_counter
-    ON pg_temp.sourced_raw_property_sales_b(file_source_id, sale_counter, property_id);
-
---
--- # Concatenciate long property descriptions
---
-
-WITH
-  sourced_raw_property_sales_c AS (
-    SELECT source_id,
-           file_source_id,
-           r.*
-      FROM nsw_vg_raw.ps_row_c as r
-      LEFT JOIN nsw_vg_raw.ps_row_c_source USING (ps_row_c_id)
-      LEFT JOIN meta.source_file USING (source_id)),
-
-  aggregated AS (
-    SELECT (ARRAY_AGG(source_id ORDER BY position))[1] as source_id,
-           file_source_id,
-           sale_counter,
-           STRING_AGG(property_description, '' ORDER BY position) AS full_property_description
-      FROM sourced_raw_property_sales_c
-      WHERE property_description IS NOT NULL AND sale_counter IS NOT NULL
-      GROUP BY (file_source_id, sale_counter)),
-
-  joined AS (
-    SELECT c.source_id,
-           c.file_source_id,
-           c.full_property_description,
-           b.property_id,
-           b.strata_lot_number,
-           b.effective_date,
-           b.seen_in_land_values,
-           b.date_provided,
-           b.dealing_number
-      FROM pg_temp.sourced_raw_property_sales_b as b
-      INNER JOIN aggregated as c USING (file_source_id, sale_counter)
-      WHERE full_property_description IS NOT NULL
-        AND property_id IS NOT NULL)
-
-SELECT DISTINCT ON (property_id, strata_lot_number, dealing_number)
-       *
-  INTO TEMP TABLE pg_temp.consolidated_property_description_c
-  FROM joined
-  ORDER BY property_id,
-           strata_lot_number,
-           dealing_number DESC,
-           date_provided DESC;
+  LEFT JOIN with_baseline_information AS b USING (b_source_id)
+  LEFT JOIN nsw_vg_raw.land_value_row_complement AS e USING (property_id, effective_date);
 
 --
 -- # Init Temp tables
 --
 
 WITH
-  unique_pairs AS (
+  canonical AS (
     SELECT DISTINCT ON (property_id, effective_date)
-           source_id,
-           file_source_id,
-           date_published,
-           r.*,
-           r.contract_date as effective_date
-      FROM nsw_vg_raw.ps_row_b_legacy as r
-      LEFT JOIN nsw_vg_raw.ps_row_b_legacy_source USING (ps_row_b_legacy_id)
-      LEFT JOIN meta.source_file USING (source_id)
-      LEFT JOIN meta.file_source USING (file_source_id)
-      --
-      -- Combined with the `SELECT DISTINCT ON` and this ordering
-      -- we limit results to unique pairs of (property_id, effective_date)
-      -- while prioritising the most up to date ones.
-      --
-      ORDER BY property_id, effective_date, date_published DESC),
+           b_legacy_source_id,
+           property_id,
+           contract_date as effective_date,
+           ROW_NUMBER() OVER (
+              PARTITION BY property_id, contract_date
+              ORDER BY a.date_provided DESC
+           ) AS rank
+      FROM nsw_vg_raw.ps_row_b_legacy
+      LEFT JOIN nsw_vg_raw.ps_row_a_legacy a USING (file_source_id)),
 
   relevant_modern_psi AS (
     SELECT DISTINCT ON (property_id, effective_date)
-           property_id, effective_date, source_id as ps_row_b_id
-      FROM pg_temp.sourced_raw_property_sales_b
+           property_id, effective_date, b_source_id
+      FROM nsw_vg_raw.ps_row_b
+      LEFT JOIN nsw_vg_raw.ps_row_b_complementary USING (b_source_id)
       WHERE strata_lot_number IS NULL)
 
-SELECT r.*,
-       (m.ps_row_b_id IS NOT NULL) AS seen_in_modern_psi
-  INTO TEMP pg_temp.sourced_raw_property_sales_b_legacy
-  FROM unique_pairs r
+INSERT INTO nsw_vg_raw.ps_row_b_legacy_complementary(b_legacy_source_id, effective_date, seen_in_modern_psi, canonical)
+SELECT b_legacy_source_id, r.effective_date, (m.b_source_id IS NOT NULL), (r.rank = 1)
+  FROM canonical r
   LEFT JOIN relevant_modern_psi m USING (property_id, effective_date);
-
-CREATE INDEX idx_sourced_raw_property_sales_b_legacy_property_id
-    ON pg_temp.sourced_raw_property_sales_b_legacy(property_id);
-

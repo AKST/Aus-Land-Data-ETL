@@ -1,50 +1,28 @@
-CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_a_legacy_source(
-    ps_row_a_legacy_id UUID NOT NULL,
-    source_id UUID UNIQUE NOT NULL,
-    FOREIGN KEY (source_id) REFERENCES meta.source(source_id)
+CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_b_complementary(
+    b_source_id UUID UNIQUE NOT NULL,
+    effective_date DATE NOT NULL,
+    seen_in_land_values BOOL NOT NULL,
+    canonical BOOL NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_b_legacy_source(
-    ps_row_b_legacy_id UUID NOT NULL,
-    source_id UUID UNIQUE NOT NULL,
-    FOREIGN KEY (source_id) REFERENCES meta.source(source_id)
+CREATE INDEX idx_ps_row_b_complementary_canonical_b_source_id
+    ON nsw_vg_raw.ps_row_b_complementary(canonical, b_source_id);
+
+CREATE INDEX idx_ps_row_b_complementary_b_source_id
+    ON nsw_vg_raw.ps_row_b_complementary(b_source_id);
+
+CREATE INDEX idx_ps_row_b_complementary_canonical
+    ON nsw_vg_raw.ps_row_b_complementary(canonical);
+
+CREATE INDEX idx_ps_row_b_complementary_effective_date
+    ON nsw_vg_raw.ps_row_b_complementary(effective_date);
+
+CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_b_legacy_complementary(
+    b_legacy_source_id UUID NOT NULL,
+    effective_date DATE NOT NULL,
+    seen_in_modern_psi BOOL NOT NULL,
+    canonical BOOL NOT NULL
 );
 
-CREATE INDEX idx_ps_row_a_legacy_source_a ON nsw_vg_raw.ps_row_a_legacy_source(ps_row_a_legacy_id);
-CREATE INDEX idx_ps_row_a_legacy_source_b ON nsw_vg_raw.ps_row_a_legacy_source(source_id);
-CREATE INDEX idx_ps_row_b_legacy_source_a ON nsw_vg_raw.ps_row_b_legacy_source(ps_row_b_legacy_id);
-CREATE INDEX idx_ps_row_b_legacy_source_b ON nsw_vg_raw.ps_row_b_legacy_source(source_id);
-
-CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_a_source(
-    ps_row_a_id UUID NOT NULL,
-    source_id UUID UNIQUE NOT NULL,
-    FOREIGN KEY (source_id) REFERENCES meta.source(source_id)
-);
-
-CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_b_source(
-    ps_row_b_id UUID NOT NULL,
-    source_id UUID UNIQUE NOT NULL,
-    FOREIGN KEY (source_id) REFERENCES meta.source(source_id)
-);
-
-CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_c_source(
-    ps_row_c_id UUID NOT NULL,
-    source_id UUID UNIQUE NOT NULL,
-    FOREIGN KEY (source_id) REFERENCES meta.source(source_id)
-);
-
-CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_d_source(
-    ps_row_d_id UUID NOT NULL,
-    source_id UUID UNIQUE NOT NULL,
-    FOREIGN KEY (source_id) REFERENCES meta.source(source_id)
-);
-
-CREATE INDEX idx_ps_row_a_source_a ON nsw_vg_raw.ps_row_a_source(ps_row_a_id);
-CREATE INDEX idx_ps_row_a_source_b ON nsw_vg_raw.ps_row_a_source(source_id);
-CREATE INDEX idx_ps_row_b_source_a ON nsw_vg_raw.ps_row_b_source(ps_row_b_id);
-CREATE INDEX idx_ps_row_b_source_b ON nsw_vg_raw.ps_row_b_source(source_id);
-CREATE INDEX idx_ps_row_c_source_a ON nsw_vg_raw.ps_row_c_source(ps_row_c_id);
-CREATE INDEX idx_ps_row_c_source_b ON nsw_vg_raw.ps_row_c_source(source_id);
-CREATE INDEX idx_ps_row_d_source_a ON nsw_vg_raw.ps_row_d_source(ps_row_d_id);
-CREATE INDEX idx_ps_row_d_source_b ON nsw_vg_raw.ps_row_d_source(source_id);
-
+CREATE INDEX idx_ps_row_b_legacy_complementary_b_legacy_source_id
+    ON nsw_vg_raw.ps_row_b_legacy_complementary(b_legacy_source_id);
