@@ -128,7 +128,7 @@ class Stmt:
 
     @dataclass
     class CreateIndex(Op):
-        index_name: str
+        index_name: Optional[str]
 
         @property
         def is_concurrent(self: Self) -> bool:

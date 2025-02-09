@@ -17,6 +17,7 @@ from ..type import Ref, AlterTableAction
     "CREATE TYPE s.abc AS ENUM ('A', 'B', 'C')",
     "CREATE INDEX idx_a ON a (id)",
     "CREATE INDEX CONCURRENTLY idx_a ON a (id)",
+    "CREATE INDEX ON s.a (id)",
     "CREATE INDEX idx_a ON s.a (id)",
     "CREATE INDEX IF NOT EXISTS idx_a ON a (id)",
     "CREATE INDEX IF NOT EXISTS idx_a ON s.a (id)",

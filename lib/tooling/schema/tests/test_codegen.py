@@ -19,6 +19,7 @@ from ..reader import sql_as_operations
     (False, "CREATE TABLE s.b (c DOUBLE PRECISION)"),
     (False, "CREATE TYPE abc AS ENUM ('A', 'B', 'C')"),
     (False, "CREATE TYPE s.abc AS ENUM ('A', 'B', 'C')"),
+    (False, "CREATE INDEX ON a (id)"),
     (False, "CREATE INDEX IF NOT EXISTS idx_a ON a (id)"),
     (False, "CREATE INDEX CONCURRENTLY idx_a ON a (id)"),
     (False, "CREATE INDEX IF NOT EXISTS idx_a ON s.a (id)"),

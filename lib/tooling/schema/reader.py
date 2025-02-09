@@ -161,8 +161,8 @@ def expr_as_op(expr: Expression) -> Optional[Stmt.Op]:
             return Stmt.CreateTablePartition(expr, get_identifiers(id_info))
         case sql_expr.Create(kind="TABLE", this=id_info):
             return Stmt.CreateTable(expr, get_identifiers(id_info))
-        case sql_expr.Create(kind="INDEX", this=schema):
-            t_name = schema.this.this
+        case sql_expr.Create(kind="INDEX", this=index):
+            t_name = index.this.this if index.this else None
             return Stmt.CreateIndex(expr, t_name)
         case sql_expr.Create(kind="FUNCTION", this=id_info):
             return Stmt.CreateFunction(expr, get_identifiers(id_info.this))
