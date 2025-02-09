@@ -11,6 +11,7 @@ class NswVgTaskConfig:
         workers: int
         sub_workers: int
         db_config: DatabaseConfig
+        truncate_earlier: bool
 
     @dataclass
     class PsiIngest:

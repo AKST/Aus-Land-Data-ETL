@@ -2,7 +2,7 @@ import abc
 import asyncio
 from dataclasses import dataclass
 from logging import getLogger
-from multiprocessing import Process
+from multiprocessing import Process, Queue as MpQueue
 from multiprocessing.synchronize import Semaphore as MpSemaphore
 import time
 from typing import Dict, List, Optional, Self, Callable, Tuple
@@ -11,6 +11,7 @@ import uuid
 from lib.service.database import DatabaseService
 from lib.pipeline.nsw_lrs.property_description.parse import parse_property_description_data
 from lib.pipeline.nsw_lrs.property_description import PropertyDescription
+from .type import ParentMessage
 
 @dataclass
 class QuantileRange:
@@ -29,7 +30,7 @@ class _WorkerClient:
     async def join(self: Self) -> None:
         await asyncio.to_thread(self.proc.join)
 
-SpawnWorkerFn = Callable[[WorkerProcessConfig], Process]
+SpawnWorkerFn = Callable[[int, WorkerProcessConfig], Process]
 
 class PropDescIngestionWorkerPool:
     _logger = getLogger(f'{__name__}.Pool')
@@ -46,7 +47,7 @@ class PropDescIngestionWorkerPool:
 
     def spawn(self: Self, worker_no: int, quantiles: List[QuantileRange]) -> None:
         worker_conf = WorkerProcessConfig(worker_no=worker_no, quantiles=quantiles)
-        process = self._spawn_worker_fn(worker_conf)
+        process = self._spawn_worker_fn(worker_no, worker_conf)
         self._pool[worker_no] = _WorkerClient(process)
         process.start()
 
@@ -108,35 +109,49 @@ class PropDescIngestionSupervisor:
 
 class PropDescIngestionWorker:
     _logger = getLogger(f'{__name__}.Worker')
-    _semaphore: MpSemaphore
-    _db: DatabaseService
 
-    def __init__(self: Self, semaphore: MpSemaphore, db: DatabaseService) -> None:
+    def __init__(self: Self,
+                 process_id: int,
+                 queue: MpQueue,
+                 semaphore: MpSemaphore,
+                 db: DatabaseService) -> None:
+        self.process_id = process_id
+        self._queue = queue
         self._semaphore = semaphore
         self._db = db
 
     async def ingest(self: Self, quantiles: List[QuantileRange]) -> None:
-        self._logger.info("Starting sub workers")
-        tasks = [asyncio.create_task(self.worker(q)) for q in quantiles]
+        self._logger.debug("Starting sub workers")
+        tasks = [asyncio.create_task(self.worker(i, q)) for i, q in enumerate(quantiles)]
         await asyncio.gather(*tasks)
-        self._logger.info("Finished ingesting")
+        self._logger.debug("Finished ingesting")
 
-    async def worker(self: Self, quantile: QuantileRange) -> None:
+    async def worker(self: Self, worker_id: int, quantile: QuantileRange) -> None:
         limit = 100
         temp_table_name = f"q_{uuid.uuid4().hex[:8]}"
 
+        def on_ingest_page(amount: int):
+            pid, wid = self.process_id, worker_id
+            self._queue.put(ParentMessage.Processed(pid, wid, amount))
+
+        def on_ingest_queued(amount: int):
+            pid, wid = self.process_id, worker_id
+            self._queue.put(ParentMessage.Queued(pid, wid, amount))
+
         async with self._db.async_connect() as conn, conn.cursor() as cursor:
-            self._logger.info(f'creating temp table {temp_table_name}')
+            self._logger.debug(f'creating temp table {temp_table_name}')
             await self.create_temp_table(quantile, temp_table_name, cursor)
 
             await cursor.execute(f"SELECT count(*) FROM pg_temp.{temp_table_name}")
             count = (await cursor.fetchone())[0]
+            on_ingest_queued(count)
 
             for offset in range(0, count, limit):
-                self._logger.info(f"{temp_table_name}: {offset}/{count}")
                 await self.ingest_page(conn, cursor, temp_table_name, offset, limit)
+                on_ingest_page(min(limit, count - offset))
 
-            self._logger.info(f"{temp_table_name}: DONE")
+
+            self._logger.debug(f"{temp_table_name}: DONE")
             await cursor.execute(f"""
                 DROP TABLE pg_temp.{temp_table_name};
                 SET session_replication_role = 'origin';

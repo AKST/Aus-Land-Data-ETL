@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from functools import reduce
 from logging import getLogger
-from typing import Dict, Self, Tuple
+from typing import Self, Tuple
 
 from lib.service.clock import ClockService
 from lib.utility.format import fmt_time_elapsed
@@ -40,8 +40,8 @@ class FileStatistics:
 
 class NswVgLvTelemetry:
     _logger = getLogger(__name__)
-    _files: Dict[str, FileStatistics]
-    _workers: Dict[int, WorkerStatistics]
+    _files: dict[str, FileStatistics]
+    _workers: dict[int, WorkerStatistics]
 
     def __init__(self: Self, clock: ClockService, start_time: float):
         self._workers = {}
