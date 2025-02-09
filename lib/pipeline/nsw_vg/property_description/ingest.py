@@ -32,7 +32,7 @@ class _WorkerClient:
 SpawnWorkerFn = Callable[[WorkerProcessConfig], Process]
 
 class PropDescIngestionWorkerPool:
-    _logger = getLogger(f'{__name__}.PropDescIngestionWorkerPool')
+    _logger = getLogger(f'{__name__}.Pool')
     _pool: Dict[int, _WorkerClient]
     _semaphore: MpSemaphore
     _spawn_worker_fn: SpawnWorkerFn
@@ -58,7 +58,7 @@ class PropDescIngestionWorkerPool:
             ])
 
 class PropDescIngestionSupervisor:
-    _logger = getLogger(f'{__name__}.PropDescIngestionSupervisor')
+    _logger = getLogger(f'{__name__}.Supervisor')
     _db: DatabaseService
     _worker_pool: PropDescIngestionWorkerPool
 
@@ -107,7 +107,7 @@ class PropDescIngestionSupervisor:
             }
 
 class PropDescIngestionWorker:
-    _logger = getLogger(f'{__name__}.PropDescIngestionWorker')
+    _logger = getLogger(f'{__name__}.Worker')
     _semaphore: MpSemaphore
     _db: DatabaseService
 

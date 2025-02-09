@@ -23,7 +23,7 @@ SELECT DISTINCT ON (effective_date, property_id, strata_lot_number)
     END)::nsw_lrs.property_nature,
     strata_lot_number
   FROM nsw_vg_raw.ps_row_b_complementary
-  LEFT JOIN nsw_vg_raw.ps_row_b USING (b_source_id)
+  LEFT JOIN nsw_vg_raw.ps_row_b USING (property_id, b_source_id)
   WHERE nature_of_property IS NOT NULL
     AND property_id IS NOT NULL
     AND canonical;

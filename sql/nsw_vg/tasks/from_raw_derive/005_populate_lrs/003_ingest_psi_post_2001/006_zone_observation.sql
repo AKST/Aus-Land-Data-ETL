@@ -15,7 +15,7 @@ SELECT DISTINCT ON (effective_date, property_id)
        property_id,
        zone_code
   FROM nsw_vg_raw.ps_row_b_complementary
-  LEFT JOIN nsw_vg_raw.ps_row_b b USING (b_source_id)
+  LEFT JOIN nsw_vg_raw.ps_row_b b USING (property_id, b_source_id)
   WHERE zone_standard = 'ep&a_2006'
     AND canonical
     AND NOT seen_in_land_values

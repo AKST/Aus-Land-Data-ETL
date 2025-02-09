@@ -29,6 +29,7 @@ WITH
   --
   with_rank AS (
     SELECT b_source_id,
+           property_id,
            ROW_NUMBER() OVER (
              PARTITION BY dealing_number, property_id, strata_lot_number
              ORDER BY (
@@ -44,14 +45,16 @@ WITH
 INSERT INTO nsw_vg_raw.ps_row_b_complementary(
   b_source_id,
   effective_date,
+  property_id,
   seen_in_land_values,
   canonical)
 SELECT b_source_id,
        effective_date,
+       property_id,
        (e.source_id IS NOT NULL),
        (r.score = 1)
   FROM with_rank r
-  LEFT JOIN with_baseline_information AS b USING (b_source_id)
+  LEFT JOIN with_baseline_information AS b USING (property_id, b_source_id)
   LEFT JOIN nsw_vg_raw.land_value_row_complement AS e USING (property_id, effective_date);
 
 --
@@ -75,7 +78,7 @@ WITH
     SELECT DISTINCT ON (property_id, effective_date)
            property_id, effective_date, b_source_id
       FROM nsw_vg_raw.ps_row_b
-      LEFT JOIN nsw_vg_raw.ps_row_b_complementary USING (b_source_id)
+      LEFT JOIN nsw_vg_raw.ps_row_b_complementary USING (property_id, b_source_id)
       WHERE strata_lot_number IS NULL)
 
 INSERT INTO nsw_vg_raw.ps_row_b_legacy_complementary(b_legacy_source_id, effective_date, seen_in_modern_psi, canonical)

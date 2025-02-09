@@ -15,8 +15,7 @@ CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_a_legacy (
     date_provided DATE NOT NULL
 );
 
-CREATE INDEX idx_ps_row_a_legacy_a_legacy_source_id
-    ON nsw_vg_raw.ps_row_a_legacy(a_legacy_source_id);
+CREATE INDEX ON nsw_vg_raw.ps_row_a_legacy(a_legacy_source_id);
 
 CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_b_legacy (
     b_legacy_source_id UUID NOT NULL,
@@ -42,8 +41,7 @@ CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_b_legacy (
     zone_standard nsw_vg.zoning_standard,
 );
 
-CREATE INDEX idx_ps_row_b_legacy_b_legacy_source_i
-    ON nsw_vg_raw.ps_row_b_legacy(b_legacy_source_id);
+CREATE INDEX ON nsw_vg_raw.ps_row_b_legacy(b_legacy_source_id);
 
 --
 -- # Non Legacy
@@ -61,11 +59,10 @@ CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_a (
     submitting_user_id TEXT NOT NULL
 );
 
-CREATE INDEX idx_ps_row_a_a_source_id
-    ON nsw_vg_raw.ps_row_a(a_source_id);
+CREATE INDEX ON nsw_vg_raw.ps_row_a(a_source_id);
 
 CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_b (
-    b_source_id UUID UNIQUE NOT NULL,
+    b_source_id UUID NOT NULL,
     position bigint NOT NULL,
     file_source_id UUID NOT NULL,
     district_code INT NOT NULL,
@@ -99,16 +96,13 @@ CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_b (
     sale_code varchar(3),
     interest_of_sale INT,
     dealing_number varchar(10) NOT NULL,
-);
+) PARTITION BY HASH (property_id);
 
-CREATE INDEX idx_ps_row_b_b_source_id
-    ON nsw_vg_raw.ps_row_b(b_source_id);
-
-CREATE INDEX idx_ps_row_b_file_source_id_sale_counter
-    ON nsw_vg_raw.ps_row_b(file_source_id, sale_counter);
+CREATE INDEX ON nsw_vg_raw.ps_row_b(b_source_id);
+CREATE INDEX ON nsw_vg_raw.ps_row_b(file_source_id, sale_counter);
 
 CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_c (
-    c_source_id UUID UNIQUE NOT NULL,
+    c_source_id UUID NOT NULL,
     position bigint NOT NULL,
     file_source_id UUID NOT NULL,
     district_code INT NOT NULL,
@@ -116,16 +110,13 @@ CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_c (
     sale_counter INT NOT NULL,
     date_provided DATE NOT NULL,
     property_description TEXT,
-);
+) PARTITION BY HASH (property_id);
 
-CREATE INDEX idx_ps_row_c_c_source_id
-    ON nsw_vg_raw.ps_row_c(c_source_id);
-
-CREATE INDEX idx_ps_row_c_file_source_id_sale_counter
-    ON nsw_vg_raw.ps_row_c(file_source_id, sale_counter);
+CREATE INDEX ON nsw_vg_raw.ps_row_c(c_source_id);
+CREATE INDEX ON nsw_vg_raw.ps_row_c(file_source_id, sale_counter);
 
 CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_d (
-    d_source_id UUID UNIQUE NOT NULL,
+    d_source_id UUID NOT NULL,
     position bigint NOT NULL,
     file_source_id UUID NOT NULL,
     district_code INT NOT NULL,
@@ -133,10 +124,7 @@ CREATE TABLE IF NOT EXISTS nsw_vg_raw.ps_row_d (
     sale_counter INT NOT NULL,
     date_provided DATE NOT NULL,
     participant nsw_lrs.sale_participant NOT NULL,
-);
+) PARTITION BY HASH (property_id);
 
-CREATE INDEX idx_ps_row_d_d_source_id
-    ON nsw_vg_raw.ps_row_d(d_source_id);
-
-CREATE INDEX idx_ps_row_d_file_source_id_sale_counter
-    ON nsw_vg_raw.ps_row_d(file_source_id, sale_counter);
+CREATE INDEX ON nsw_vg_raw.ps_row_d(d_source_id);
+CREATE INDEX ON nsw_vg_raw.ps_row_d(file_source_id, sale_counter);

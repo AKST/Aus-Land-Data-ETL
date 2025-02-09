@@ -47,7 +47,5 @@ CREATE TABLE IF NOT EXISTS nsw_vg_raw.land_value_row (
     UNIQUE (property_id, source_date)
 ) PARTITION BY HASH (property_id);
 
-CREATE INDEX idx_land_value_row_pk
-    ON nsw_vg_raw.land_value_row(property_id, source_date);
-CREATE INDEX idx_land_value_row_source_file_name
-    ON nsw_vg_raw.land_value_row(source_file_name);
+CREATE INDEX ON nsw_vg_raw.land_value_row(property_id, source_date);
+CREATE INDEX ON nsw_vg_raw.land_value_row(source_file_name);
