@@ -6,7 +6,7 @@ from multiprocessing import Queue as MpQueue
 from typing import Self, Optional
 import queue
 
-from lib.service.clock import ClockService
+from lib.service.clock import AbstractClockService
 from lib.utility.format import fmt_time_elapsed
 
 from .type import ParentMessage
@@ -43,14 +43,14 @@ class Telemetry:
 
     def __init__(self: Self,
                  start_time: float,
-                 clock: ClockService,
+                 clock: AbstractClockService,
                  processes: dict[int, Process]) -> None:
         self.start_time = start_time
         self._clock = clock
         self._processes = processes
 
     @staticmethod
-    def create(clock: ClockService, workers: int, subworkers: int) -> 'Telemetry':
+    def create(clock: AbstractClockService, workers: int, subworkers: int) -> 'Telemetry':
         procs = {
             j: Process({
                 i: WorkerState(0, 0)

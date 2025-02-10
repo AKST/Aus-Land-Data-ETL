@@ -11,17 +11,13 @@ import uuid
 from lib.service.database import DatabaseService
 from lib.pipeline.nsw_lrs.property_description.parse import parse_property_description_data
 from lib.pipeline.nsw_lrs.property_description import PropertyDescription
-from .type import ParentMessage
-
-@dataclass
-class QuantileRange:
-    start: Optional[int]
-    end: Optional[int]
+from .type import ParentMessage, PartitionSlice
+from .work_partitioner import WorkPartitioner
 
 @dataclass
 class WorkerProcessConfig:
     worker_no: int
-    quantiles: List[QuantileRange]
+    quantiles: List[PartitionSlice]
 
 @dataclass
 class _WorkerClient:
@@ -30,7 +26,7 @@ class _WorkerClient:
     async def join(self: Self) -> None:
         await asyncio.to_thread(self.proc.join)
 
-SpawnWorkerFn = Callable[[int, WorkerProcessConfig], Process]
+SpawnWorkerFn = Callable[[WorkerProcessConfig], Process]
 
 class PropDescIngestionWorkerPool:
     _logger = getLogger(f'{__name__}.Pool')
@@ -45,9 +41,9 @@ class PropDescIngestionWorkerPool:
         self._semaphore = semaphore
         self._spawn_worker_fn = spawn_worker_fn
 
-    def spawn(self: Self, worker_no: int, quantiles: List[QuantileRange]) -> None:
+    def spawn(self: Self, worker_no: int, quantiles: List[PartitionSlice]) -> None:
         worker_conf = WorkerProcessConfig(worker_no=worker_no, quantiles=quantiles)
-        process = self._spawn_worker_fn(worker_no, worker_conf)
+        process = self._spawn_worker_fn(worker_conf)
         self._pool[worker_no] = _WorkerClient(process)
         process.start()
 
@@ -63,49 +59,26 @@ class PropDescIngestionSupervisor:
     _db: DatabaseService
     _worker_pool: PropDescIngestionWorkerPool
 
-    def __init__(self: Self, db: DatabaseService, pool: PropDescIngestionWorkerPool) -> None:
+    def __init__(self: Self,
+                 db: DatabaseService,
+                 pool: PropDescIngestionWorkerPool,
+                 partitioner: WorkPartitioner) -> None:
         self._db = db
         self._worker_pool = pool
+        self._partitioner = partitioner
 
     async def ingest(self: Self, workers: int, sub_workers: int) -> None:
         no_of_quantiles = workers * sub_workers
-        quantiles = await self._find_table_quantiles(workers, sub_workers)
+        slices = await self._partitioner.find_partitions()
 
-        for q_id, quantile in quantiles.items():
+        for q_id, partition_slice in slices.items():
             self._logger.debug(f"spawning {q_id}")
-            self._worker_pool.spawn(q_id, quantile)
+            self._worker_pool.spawn(q_id, partition_slice)
 
         self._logger.debug(f"Awaiting workers")
         await self._worker_pool.join_all()
         self._logger.debug(f"Done")
 
-    async def _find_table_quantiles(self: Self, workers: int, sub_workers: int) -> Dict[int, List[QuantileRange]]:
-
-        async with self._db.async_connect() as c, c.cursor() as cursor:
-            no_of_quantiles = workers * sub_workers
-            self._logger.info(f"Finding quantiles (count {no_of_quantiles})")
-            await cursor.execute(f"""
-                SELECT segment, MIN(property_id), MAX(property_id)
-                FROM (SELECT property_id, NTILE({no_of_quantiles}) OVER (ORDER BY property_id) AS segment
-                        FROM nsw_lrs.legal_description
-                       WHERE legal_description_kind = '> 2004-08-17'
-                         AND strata_lot_number IS NULL) t
-                GROUP BY segment
-                ORDER BY segment
-            """)
-            items = await cursor.fetchall()
-            q_start = [None, *(row[1] for row in items[1:])]
-            q_end = [*(row[2] for row in items[:-1]), None]
-
-            qs = [
-                QuantileRange(start=q_start[i], end=q_end[i])
-                for i, row in enumerate(items)
-            ]
-
-            return {
-                i: qs[i * sub_workers:(i + 1) * sub_workers]
-                for i in range(workers)
-            }
 
 class PropDescIngestionWorker:
     _logger = getLogger(f'{__name__}.Worker')
@@ -120,13 +93,13 @@ class PropDescIngestionWorker:
         self._semaphore = semaphore
         self._db = db
 
-    async def ingest(self: Self, quantiles: List[QuantileRange]) -> None:
+    async def ingest(self: Self, partitions: List[PartitionSlice]) -> None:
         self._logger.debug("Starting sub workers")
-        tasks = [asyncio.create_task(self.worker(i, q)) for i, q in enumerate(quantiles)]
+        tasks = [asyncio.create_task(self.worker(i, q)) for i, q in enumerate(partitions)]
         await asyncio.gather(*tasks)
         self._logger.debug("Finished ingesting")
 
-    async def worker(self: Self, worker_id: int, quantile: QuantileRange) -> None:
+    async def worker(self: Self, worker_id: int, partition: PartitionSlice) -> None:
         limit = 100
         temp_table_name = f"q_{uuid.uuid4().hex[:8]}"
 
@@ -140,7 +113,7 @@ class PropDescIngestionWorker:
 
         async with self._db.async_connect() as conn, conn.cursor() as cursor:
             self._logger.debug(f'creating temp table {temp_table_name}')
-            await self.create_temp_table(quantile, temp_table_name, cursor)
+            await self.create_temp_table(partition, temp_table_name, cursor)
 
             await cursor.execute(f"SELECT count(*) FROM pg_temp.{temp_table_name}")
             count = (await cursor.fetchone())[0]
@@ -254,7 +227,7 @@ class PropDescIngestionWorker:
 
 
     async def create_temp_table(self: Self,
-                                q: QuantileRange,
+                                p: PartitionSlice,
                                 temp_table_name: str,
                                 cursor) -> None:
         loop = asyncio.get_running_loop()
@@ -268,12 +241,12 @@ class PropDescIngestionWorker:
                    legal_description_id,
                    property_id,
                    effective_date
-              FROM nsw_lrs.legal_description
+              FROM {p.src_table_name}
               LEFT JOIN meta.source_byte_position USING (source_id)
               LEFT JOIN meta.file_source USING (file_source_id)
              WHERE legal_description_kind = '> 2004-08-17'
-               {f"AND property_id >= {q.start}" if q.start else ''}
-               {f"AND property_id < {q.end}" if q.end else ''}
+               {f"AND property_id >= {p.start}" if p.start else ''}
+               {f"AND property_id < {p.end}" if p.end else ''}
                AND strata_lot_number IS NULL;
         """)
         self._semaphore.release()

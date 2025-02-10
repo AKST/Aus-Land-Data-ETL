@@ -42,7 +42,7 @@ async def ingest_nswvg(
 
     if config.property_descriptions:
         try:
-            await ingest_property_description(db, config.property_descriptions)
+            await ingest_property_description(db, clock, config.property_descriptions)
         except Exception as e:
             _logger.exception(e)
             _logger.error('failed to ingest all property descriptions')
@@ -176,6 +176,7 @@ if __name__ == '__main__':
             worker_debug=args.nswlrs_propdesc_child_debug,
             workers=args.nswlrs_propdesc_workers,
             sub_workers=args.nswlrs_propdesc_subworkers,
+            truncate_earlier=False,
         )
 
     config = NswVgTaskConfig.Ingestion(

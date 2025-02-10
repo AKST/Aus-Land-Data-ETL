@@ -1,5 +1,18 @@
 from abc import ABC
 from dataclasses import dataclass
+from typing import Optional
+
+@dataclass
+class PartitionSlice:
+    src_table_name: str
+    start: Optional[int]
+    end: Optional[int]
+    count: int
+
+@dataclass
+class QuantileRange:
+    start: Optional[int]
+    end: Optional[int]
 
 class ParentMessage:
     @dataclass

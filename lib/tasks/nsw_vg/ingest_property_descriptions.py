@@ -11,6 +11,7 @@ from lib.pipeline.nsw_vg.property_description import (
     PropDescIngestionWorkerPool,
     ProcDescTelemetry,
     ProcDescTelemetryListener,
+    PropDescWorkPartitioner,
     ProcUpdateMessage,
     WorkerProcessConfig,
 )
@@ -37,6 +38,7 @@ async def ingest_property_description(
     semaphore = MpSemaphore(1)
     telemetry = ProcDescTelemetry.create(clock, config.workers, config.sub_workers)
     queue, telemetry_listener = ProcDescTelemetryListener.create(telemetry)
+    partitioner = PropDescWorkPartitioner(db, config.workers, config.sub_workers)
 
     try:
         if config.truncate_earlier:
@@ -48,13 +50,13 @@ async def ingest_property_description(
                     await conn.execute(query)
 
         spawn_worker_with_worker_config = \
-            lambda process_id, w_config: Process(target=spawn_worker, args=(
-                process_id, queue, w_config, semaphore,
+            lambda w_config: Process(target=spawn_worker, args=(
+                queue, w_config, semaphore,
                 config.worker_debug, config.db_config))
 
         telemetry_listener.listen()
         pool = PropDescIngestionWorkerPool(semaphore, spawn_worker_with_worker_config)
-        parent = PropDescIngestionSupervisor(db, pool)
+        parent = PropDescIngestionSupervisor(db, pool, partitioner)
         await parent.ingest(config.workers, config.sub_workers)
         telemetry_listener.stop()
     except Exception as e:
@@ -63,7 +65,6 @@ async def ingest_property_description(
         raise e
 
 def spawn_worker(
-    process_id: int,
     queue: MpQueue,
     config: WorkerProcessConfig,
     semaphore: SemaphoreT,
@@ -74,7 +75,7 @@ def spawn_worker(
         config_vendor_logging({'sqlglot', 'psycopg.pool'})
         config_logging(config.worker_no, worker_debug)
         db = DatabaseServiceImpl.create(db_config, len(config.quantiles))
-        worker = PropDescIngestionWorker(process_id, queue, semaphore, db)
+        worker = PropDescIngestionWorker(config.worker_no, queue, semaphore, db)
         await worker.ingest(config.quantiles)
     asyncio.run(worker_runtime(config, semaphore, db_config))
 

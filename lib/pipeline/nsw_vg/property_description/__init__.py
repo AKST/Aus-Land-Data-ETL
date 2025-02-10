@@ -7,3 +7,4 @@ from .telemetry import (
     TelemetryListener as ProcDescTelemetryListener,
 )
 from .type import ParentMessage as ProcUpdateMessage
+from .work_partitioner import WorkPartitioner as PropDescWorkPartitioner
