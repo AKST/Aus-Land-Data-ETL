@@ -6,17 +6,15 @@ import signal
 import time
 from typing import Optional, Self
 
-from .messages import (
+from .message import (
+    msg_registry,
     Message,
-    echo_request,
-    echo_response,
-    CloseRequest,
-    HandshakeRequest,
-    HandshakeResponse,
     EchoRequest,
     EchoResponse,
+    HandshakeRequest,
+    HandshakeResponse,
+    CloseRequest,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -36,17 +34,17 @@ class DaemonConnectionHandler:
             addr = writer.get_extra_info('peername')
             logger.info(f"OPENING {addr}")
             while data := await asyncio.wait_for(reader.read(1024), timeout=1.0):
-                message: Message = echo_request.decode(data)
+                message: Message = msg_registry.decode(data)
                 logger.info(f"Received: {message}")
 
                 match message:
                     case HandshakeRequest():
                         resp = HandshakeResponse()
-                        writer.write(echo_response.encode(resp))
+                        writer.write(msg_registry.encode(resp))
                         await writer.drain()
                     case EchoRequest(message=m):
                         resp = EchoResponse(message=m)
-                        writer.write(echo_response.encode(resp))
+                        writer.write(msg_registry.encode(resp))
                         await writer.drain()
                     case CloseRequest:
                         break

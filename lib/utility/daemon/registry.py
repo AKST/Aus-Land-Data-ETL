@@ -1,46 +1,39 @@
 import struct
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, fields, field
-from typing import Any, Dict, List, Self, Type, TypeVar
+from dataclasses import dataclass, fields, field, Field
+from typing import Any, Callable, Dict, List, Self, Type, TypeVar, Union
 
-@dataclass
-class Message:
-    message_id: str
-
-def message_field(id: int, **kwargs) -> Any:
+def msg_field(id: int, t: Type[Any], **kwargs) -> Any:
     """A decorator for fields that adds an 'id' to their metadata."""
-    return field(metadata={
-        "id": id,
-        "skip": False,
-    }, **kwargs)
-
-def message_type(id: str, **kwargs):
-    """A decorator for fields that adds an 'id' to their metadata."""
-    return field(metadata={
-        "skip": True,
-    }, default=id, init=False)
-
-M = TypeVar('M', bound='Message')
+    return field(metadata={ "type": t, "id": id, "skip": False }, **kwargs)
 
 class MessageRegistry:
+    _encode_registry: dict[Type[Any], str]
+    _decode_registry: dict[str, Type[Any]]
+
     def __init__(self):
-        self._registry = {}
+        self._encode_registry = {}
+        self._decode_registry = {}
 
-    def register(self, message_cls: Type[M]) -> Type[M]:
-        """Register a message class."""
-        message_id = getattr(message_cls, "message_id", None)
-        if not message_id:
-            raise ValueError("Message class must have a 'message_id' attribute.")
-        self._registry[message_id] = message_cls
-        return message_cls
+    def register(self, message_id: str) -> Callable[[Type[Any]], Type[Any]]:
+        if message_id in self._decode_registry:
+            raise ValueError('message id already used')
 
-    def __call__(self, message_cls: Type[M]) -> Type[M]:
-        """Decorator for registering message classes."""
-        return self.register(message_cls)
+        def _register(message_cls: Type[Any]) -> Type[Any]:
+            if message_cls in self._encode_registry:
+                raise ValueError('message cls already registed')
 
-    def encode(self, message: M) -> bytes:
-        """Encode a message into binary format."""
-        message_type_id = message.message_id.encode("utf-8")
+            self._decode_registry[message_id] = message_cls
+            self._encode_registry[message_cls] = message_id
+            return message_cls
+
+        return _register
+
+    def encode(self, message: Any) -> bytes:
+        if type(message) not in self._encode_registry:
+            raise ValueError(f"Unencodable Class: {type(message)}")
+
+        message_id = self._encode_registry[type(message)]
+        message_type_id = message_id.encode("utf-8")
         payload = struct.pack("!I", len(message_type_id)) + message_type_id
         for field in fields(message):
             if field.metadata.get("skip"):
@@ -48,7 +41,8 @@ class MessageRegistry:
 
             field_id = field.metadata.get("id")
             if field_id is None:
-                raise ValueError(f"Field '{field.name}' in message '{message.message_id}' must have an 'id'.")
+                raise ValueError(f"Field '{field.name}' in message '{message_id}' must have an 'id'.")
+
             value = getattr(message, field.name)
             if isinstance(value, int):
                 payload += struct.pack("!BI", field_id, value)  # Field ID + int value
@@ -59,7 +53,7 @@ class MessageRegistry:
                 raise TypeError(f"Unsupported type: {type(value)}")
         return payload
 
-    def decode(self, data: bytes) -> Message:
+    def decode(self, data: bytes) -> Any:
         """Decode binary data into a message instance."""
         offset = 0
         # Decode the message type ID
@@ -68,10 +62,10 @@ class MessageRegistry:
         type_id = data[offset:offset + type_id_length].decode("utf-8")
         offset += type_id_length
 
-        if type_id not in self._registry:
+        if type_id not in self._decode_registry:
             raise ValueError(f"Unknown message ID: {type_id}")
 
-        message_cls = self._registry[type_id]
+        message_cls = self._decode_registry[type_id]
         field_map = {
             field.metadata["id"]: field
             for field in fields(message_cls)
@@ -99,37 +93,5 @@ class MessageRegistry:
             field_values[field.name] = value
 
         return message_cls(**field_values)
-
-echo_request = MessageRegistry()
-echo_response = MessageRegistry()
-
-@echo_request
-@dataclass
-class CloseRequest(Message):
-    message_id: str = message_type('base:close')
-
-@echo_request
-@dataclass
-class HandshakeRequest(Message):
-    message_id: str = message_type('base:handshake')
-
-@echo_response
-@dataclass
-class HandshakeResponse(Message):
-    message_id: str = message_type('base:handshake')
-
-@echo_request
-@dataclass
-class EchoRequest(Message):
-    message_id: str = message_type('app:echo')
-    message: str = message_field(1)
-
-@echo_response
-@dataclass
-class EchoResponse(Message):
-    message_id: str = message_type('app:echo')
-    message: str = message_field(1)
-
-
 
 

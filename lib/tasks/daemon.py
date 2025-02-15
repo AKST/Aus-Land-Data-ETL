@@ -8,15 +8,7 @@ import time
 
 from typing import List, Optional, Tuple
 
-from lib.daemon.echo.messages import (
-    echo_request,
-    echo_response,
-    CloseRequest,
-    HandshakeRequest,
-    HandshakeResponse,
-    EchoRequest,
-    EchoResponse,
-)
+from lib.daemon.echo import *
 
 EVAR_PROC_NAME = "DB_AKST_IO_PROC_NAME"
 EVAR_PROC_PORT = "DB_AKST_IO_PROC_PORT"
@@ -58,12 +50,12 @@ async def find_daemon_port(pid: int, timeout: float) -> int:
             try:
                 port_candidate = conn.laddr.port
                 reader, writer = await asyncio.open_connection("localhost", port_candidate)
-                writer.write(echo_request.encode(HandshakeRequest()))
+                writer.write(msg_registry.encode(HandshakeRequest()))
                 await writer.drain()
 
-                match echo_response.decode(await reader.read(1024)):
+                match msg_registry.decode(await reader.read(1024)):
                     case HandshakeResponse():
-                        writer.write(echo_request.encode(CloseRequest()))
+                        writer.write(msg_registry.encode(CloseRequest()))
                         await writer.drain()
 
                         writer.close()
@@ -129,14 +121,14 @@ async def communicate_with_daemon() -> None:
 
         # Send a request
         echo_req = EchoRequest(message="Hello, daemon!")
-        writer.write(echo_request.encode(echo_req))
+        writer.write(msg_registry.encode(echo_req))
         await writer.drain()
 
         # Read the response
-        echo_resp = echo_response.decode(await reader.read(1024))
+        echo_resp = msg_registry.decode(await reader.read(1024))
         print(f"Response from daemon: {echo_resp}")
 
-        writer.write(echo_request.encode(CloseRequest()))
+        writer.write(msg_registry.encode(CloseRequest()))
         await writer.drain()
 
         writer.close()
@@ -147,6 +139,4 @@ async def communicate_with_daemon() -> None:
         print(f"Error: {e}")
 
 if __name__ == '__main__':
-
-
     asyncio.run(communicate_with_daemon())

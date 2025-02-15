@@ -71,7 +71,6 @@ def test_select_each_nth_year_plus_first() -> None:
         NswVgTarget('k', 'k', 'k', None, datetime(2014, 1, 1)),
     ]
 
-
 def test_range_adjust_if_one_missing() -> None:
     mode = DiscoveryMode.EachNthYear(3, include_first=True)
     targets = [t for t in make_targets() if t.datetime != datetime(2021, 12, 1)]

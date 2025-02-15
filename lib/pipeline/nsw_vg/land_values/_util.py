@@ -6,8 +6,6 @@ from .config import DiscoveryMode, ByoLandValue
 
 _T = TypeVar('_T', bound=Union[NswVgTarget, ByoLandValue])
 
-
-
 def select_targets(mode: DiscoveryMode.T, all_targets: List[_T]) -> List[_T]:
     if not all_targets:
         return all_targets
@@ -48,7 +46,6 @@ def select_targets(mode: DiscoveryMode.T, all_targets: List[_T]) -> List[_T]:
 
         if include_first and previous_yield != s_targets[-1]:
             yield s_targets[-1]
-
 
     match mode:
         case DiscoveryMode.All():
