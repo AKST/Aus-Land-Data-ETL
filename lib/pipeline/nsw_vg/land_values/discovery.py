@@ -1,6 +1,7 @@
 import abc
 import asyncio
 from dataclasses import dataclass
+from datetime import datetime
 from logging import getLogger, Logger
 from typing import Self, AsyncIterator, Sequence, List, Literal
 
@@ -18,7 +19,8 @@ _BYO_LV_DIR = '_cfg_byo_lv'
 @dataclass(frozen=True)
 class Config:
     kind: DiscoveryMode.T
-    root_dir: str
+    unzip_dir: str
+    byo_dir: str
 
 class CsvAbstractDiscovery:
     @abc.abstractmethod
@@ -40,21 +42,20 @@ class ByoCsvDiscovery(CsvAbstractDiscovery):
 
     async def files(self: Self) -> AsyncIterator[NswVgLvTaskDesc.Parse]:
         for target in select_targets(self.config.kind, self.fixtures):
-            await self._unzip(target)
-            root = f'{self.config.root_dir}/{target.src_dst}'
+            root_out = f'{self.config.unzip_dir}/{dst_name_from_src_name(target.src_dst)}'
+            await self._unzip(target, root_out)
 
-            for f in sorted(await self._io.ls_dir(root)):
+            for f in sorted(await self._io.ls_dir(root_out)):
                 if not f.endswith("csv"):
                     continue
 
-                f_path = f'{root}/{f}'
+                f_path = f'{root_out}/{f}'
                 f_size = await self._io.f_size(f_path)
                 self._telemetry.record_file_queue(f_path, f_size)
                 yield NswVgLvTaskDesc.Parse(f_path, f_size, target)
 
-    async def _unzip(self: Self, target: ByoLandValue):
-        src_loc = f'{_BYO_LV_DIR}/{target.src_dst}.zip'
-        out_loc = f'{self.config.root_dir}/{target.src_dst}'
+    async def _unzip(self: Self, target: ByoLandValue, out_loc: str):
+        src_loc = f'{self.config.byo_dir}/{target.src_dst}.zip'
 
         if await self._io.is_dir(src_loc):
             return
@@ -86,13 +87,22 @@ class RemoteCsvDiscovery(CsvAbstractDiscovery):
         )
 
         async for target in self._env.with_targets(targets):
-            root = f'{self.config.root_dir}/{target.zip_dst}'
+            root = f'{self.config.unzip_dir}/{target.zip_dst}'
             for f in sorted(await self._io.ls_dir(root)):
                 if not f.endswith("csv"):
                     continue
 
-                f_path = f'{self.config.root_dir}/{target.zip_dst}/{f}'
+                f_path = f'{self.config.unzip_dir}/{target.zip_dst}/{f}'
                 f_size = await self._io.f_size(f_path)
                 self._telemetry.record_file_queue(f_path, f_size)
                 yield NswVgLvTaskDesc.Parse(f_path, f_size, target)
+
+def dst_name_from_src_name(src_dst: str) -> str:
+    prefix, date_str = src_dst.split("_")
+    year, month, day = date_str[:4], date_str[4:6], date_str[6:]
+    month_abbr = datetime.strptime(month, "%m").strftime("%b")
+
+    # Construct the original file name
+    original_name = f"nswvg_lv_{day}_{month_abbr}_{year}"
+    return original_name
 

@@ -19,7 +19,7 @@ from ..discovery import NswVgTarget
 
 @dataclass
 class ByoLandValue:
-    src_dst: str | None
+    src_dst: str
     datetime: datetime
 
 class DiscoveryMode:

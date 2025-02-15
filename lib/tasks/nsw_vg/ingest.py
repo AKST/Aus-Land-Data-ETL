@@ -5,6 +5,7 @@ import logging
 from lib.service.clock import ClockService
 from lib.service.database import *
 from lib.service.io import IoService, IoServiceImpl
+from lib.service.uuid import *
 from lib.tasks.fetch_static_files import get_session
 
 from ..fetch_static_files import Environment, get_session, initialise
@@ -22,12 +23,13 @@ async def ingest_nswvg(
     clock: ClockService,
     db: DatabaseService,
     io: IoService,
+    uuid: UuidService,
     config: NswVgTaskConfig.Ingestion,
 ):
     if config.load_raw_land_values:
         lv_conf = config.load_raw_land_values
         async with get_session(io, 'lv') as session:
-            await ingest_land_values(lv_conf, io, db, clock, session)
+            await ingest_land_values(lv_conf, io, db, uuid, clock, session)
 
     if config.load_raw_property_sales:
         await ingest_property_sales_rows(
@@ -38,11 +40,11 @@ async def ingest_nswvg(
         )
 
     if config.deduplicate:
-        await ingest_deduplicate(db, io, clock, config.deduplicate)
+        await ingest_deduplicate(db, io, uuid, clock, config.deduplicate)
 
     if config.property_descriptions:
         try:
-            await ingest_property_description(db, clock, config.property_descriptions)
+            await ingest_property_description(db, uuid, clock, config.property_descriptions)
         except Exception as e:
             _logger.exception(e)
             _logger.error('failed to ingest all property descriptions')
@@ -193,6 +195,7 @@ if __name__ == '__main__':
         config: NswVgTaskConfig.Ingestion,
     ) -> None:
         clock = ClockService()
+        uuid = UuidServiceImpl()
         io = IoServiceImpl.create(file_limit)
         db = DatabaseServiceImpl.create(
             parent_db_config,
@@ -209,6 +212,7 @@ if __name__ == '__main__':
                 clock,
                 db,
                 io,
+                uuid,
                 config,
             )
         finally:

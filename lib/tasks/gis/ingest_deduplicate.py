@@ -4,6 +4,7 @@ from typing import List
 from lib.service.clock import ClockService
 from lib.service.database import *
 from lib.service.io import IoService, IoServiceImpl
+from lib.service.uuid import *
 from lib.tooling.schema import SchemaCommand, create_schema_controller
 from lib.utility.format import fmt_time_elapsed
 
@@ -21,6 +22,7 @@ all_scripts = [
 async def ingest_deduplication(
     db: DatabaseService,
     io: IoService,
+    uuid: UuidService,
     clock: ClockService,
     cfg: GisTaskConfig.Deduplication
 ):
@@ -33,7 +35,7 @@ async def ingest_deduplication(
     else:
         scripts = all_scripts[run_from - 1:run_till]
 
-    controller = create_schema_controller(io, db)
+    controller = create_schema_controller(io, db, uuid)
 
     async def run_commands(commands: List[SchemaCommand]):
         for c in commands:
@@ -90,9 +92,10 @@ if __name__ == '__main__':
         clock = ClockService()
         io = IoServiceImpl.create(None)
         db = DatabaseServiceImpl.create(db_config, 1)
+        uuid = UuidServiceImpl()
         try:
             await db.open()
-            await ingest_deduplication(db, io, clock, cli_conf)
+            await ingest_deduplication(db, io, uuid, clock, cli_conf)
         finally:
             await db.close()
 

@@ -17,6 +17,7 @@ from lib.pipeline.nsw_vg.property_description import (
 )
 from lib.service.clock import *
 from lib.service.database import *
+from lib.service.uuid import *
 from lib.tasks.nsw_vg.config import NswVgTaskConfig
 from lib.utility.logging import config_vendor_logging, config_logging
 
@@ -28,11 +29,13 @@ _TARGET_TABLES = [
 
 async def cli_main(config: NswVgTaskConfig.PropDescIngest) -> None:
     db_service = DatabaseServiceImpl.create(config.db_config, config.workers)
+    uuid = UuidServiceImpl()
     clock = ClockService()
-    await ingest_property_description(db_service, clock, config)
+    await ingest_property_description(db_service, uuid, clock, config)
 
 async def ingest_property_description(
         db: DatabaseService,
+        uuid: UuidService,
         clock: AbstractClockService,
         config: NswVgTaskConfig.PropDescIngest) -> None:
     semaphore = MpSemaphore(1)

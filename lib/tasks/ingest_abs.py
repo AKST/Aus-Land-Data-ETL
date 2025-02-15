@@ -4,6 +4,7 @@ import asyncio
 from lib.pipeline.abs import *
 from lib.service.database import DatabaseService, DatabaseServiceImpl, DatabaseConfig
 from lib.service.io import IoService, IoServiceImpl
+from lib.service.uuid import *
 from lib.tasks.schema.count import run_count_for_schemas
 from lib.tooling.schema import SchemaCommand, create_schema_controller
 from lib.tooling.schema.config import ns_dependency_order
@@ -12,14 +13,15 @@ _OUTDIR = './_out_zip'
 
 async def ingest_all(config: AbsIngestionConfig,
                      db: DatabaseService,
-                     io: IoService) -> None:
+                     io: IoService,
+                     uuid: UuidService) -> None:
     """
     TODO make concurrent. Before I can do that I need to
     handle the schema initialisation more gracefully.
     """
     abs_ingestion = AbsIngestionSupervisor(db, _OUTDIR)
 
-    controller = create_schema_controller(io, db)
+    controller = create_schema_controller(io, db, uuid)
     await controller.command(SchemaCommand.drop(ns='abs'))
     await controller.command(SchemaCommand.create(ns='abs', omit_foreign_keys=True))
     await abs_ingestion.ingest(config)
@@ -33,6 +35,7 @@ async def _main(
     db_conf: DatabaseConfig,
     file_limit: int,
 ) -> None:
+    uuid = UuidServiceImpl()
     db = DatabaseServiceImpl.create(db_conf, 4)
     io = IoServiceImpl.create(file_limit)
 
@@ -40,7 +43,7 @@ async def _main(
         await initialise(io, session)
     try:
         await db.open()
-        await ingest_all(config, db, io)
+        await ingest_all(config, db, io, uuid)
     finally:
         await db.close()
     await run_count_for_schemas(db_conf, ['abs'])

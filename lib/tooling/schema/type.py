@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from os.path import join as join_path
 from sqlglot import Expression
@@ -92,6 +92,31 @@ class Ref:
             case None: return self.name
             case schema: return f'{schema}.{self.name}'
 
+@dataclass
+class OptionalName:
+    @dataclass
+    class T(ABC):
+        ...
+
+        @abstractmethod
+        def __str__(self) -> str:
+            ...
+
+    @dataclass
+    class Static(T):
+        name: str
+
+        def __str__(self: Self) -> str:
+            return f'static:{self.name}'
+
+    @dataclass
+    class Anon(T):
+        id: str
+        hydrated_name: str | None
+
+        def __str__(self: Self) -> str:
+            return f'Anon:{self.id}'
+
 class Stmt:
     @dataclass
     class Op(ABC):
@@ -128,7 +153,7 @@ class Stmt:
 
     @dataclass
     class CreateIndex(Op):
-        index_name: Optional[str]
+        index_name: OptionalName.T
 
         @property
         def is_concurrent(self: Self) -> bool:

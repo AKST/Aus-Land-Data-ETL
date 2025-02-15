@@ -2,14 +2,15 @@ import logging
 
 from lib.service.io import IoService, IoServiceImpl
 from lib.service.database import DatabaseServiceImpl, DatabaseService, DatabaseConfig
+from lib.service.uuid import *
 
 from lib.tooling.schema import SchemaCommand, create_schema_controller
 
 _logger = logging.getLogger(__name__)
 
-async def clean_staging_data(db: DatabaseService, io: IoService):
+async def clean_staging_data(db: DatabaseService, io: IoService, uuid: UuidService):
     _logger.info('cleaning staging data')
-    controller = create_schema_controller(io, db)
+    controller = create_schema_controller(io, db, uuid)
 
     await controller.command(
         SchemaCommand.truncate(ns='nsw_vg', ns_range=range(2, 6), cascade=True),
@@ -24,7 +25,8 @@ async def clean_staging_data(db: DatabaseService, io: IoService):
 async def _main(db_cfg: DatabaseConfig):
     db = DatabaseServiceImpl.create(db_cfg, 1)
     io = IoServiceImpl.create(None)
-    await clean_staging_data(db, io)
+    uuid = UuidServiceImpl()
+    await clean_staging_data(db, io, uuid)
 
 if __name__ == '__main__':
     import argparse

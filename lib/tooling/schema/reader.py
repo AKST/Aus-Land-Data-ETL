@@ -6,6 +6,7 @@ from sqlglot import parse as parse_sql, Expression
 import sqlglot.expressions as sql_expr
 from typing import (
     cast,
+    Callable,
     Iterator,
     Optional,
     Self,
@@ -13,6 +14,7 @@ from typing import (
 )
 
 from lib.service.io import IoService
+from lib.service.uuid import UuidService
 from lib.utility.concurrent import fmap
 from lib.utility.iteration import partition
 
@@ -20,22 +22,27 @@ from .config import schema_ns
 from .file_discovery import FileDiscovery, FileDiscoveryMatch
 from .type import (
     AlterTableAction,
+    OptionalName,
+    Ref,
     Stmt,
     SchemaNamespace,
     SqlFileMetaData,
     SchemaSyntax,
     SchemaSteps,
-    Ref,
 )
+
+GetUuid = Callable[[], str]
 
 class SchemaReader:
     logger = getLogger(f'{__name__}.SchemaReader')
 
     def __init__(self: Self,
                  file_discovery: FileDiscovery,
-                 io: IoService) -> None:
+                 io: IoService,
+                 uuid: UuidService) -> None:
         self.file_discovery = file_discovery
         self._io = io
+        self._uuid = uuid
 
     async def files(
         self: Self,
@@ -71,15 +78,18 @@ class SchemaReader:
 
     async def __f_sql_meta_data(self: Self, f: str, meta: FileDiscoveryMatch, load_syn: bool) -> SqlFileMetaData:
         try:
-            contents = await fmap(sql_as_operations, self._io.f_read(f)) if load_syn else None
+            contents = await fmap(
+                lambda e: sql_as_operations(e, self._uuid.get_uuid4_hex),
+                self._io.f_read(f),
+            ) if load_syn else None
             return SqlFileMetaData(f, self.file_discovery.root_dir, meta.ns, meta.step, meta.name, contents)
         except Exception as e:
             self.logger.error(f'failed on {f}')
             raise e
 
-def sql_as_operations(file_data: str) -> SchemaSyntax:
+def sql_as_operations(file_data: str, get_uuid: GetUuid) -> SchemaSyntax:
     sql_exprs = parse_sql(file_data, read='postgres')
-    generator_a = ((expr, expr_as_op(expr)) for expr in sql_exprs if expr)
+    generator_a = ((expr, expr_as_op(expr, get_uuid)) for expr in sql_exprs if expr)
     generator_b = [(expr, op) for expr, op in generator_a if op is not None]
     return SchemaSyntax(*partition(generator_b))
 
@@ -144,7 +154,7 @@ def get_alter_table_action(expr: Expression) -> AlterTableAction.Op:
             return AlterTableAction.ColumnAddForeignKey(expr, fk_name, col_name, ref_t, ref_col)
     raise TypeError(repr(expr))
 
-def expr_as_op(expr: Expression) -> Optional[Stmt.Op]:
+def expr_as_op(expr: Expression, get_uuid: GetUuid) -> Optional[Stmt.Op]:
     match expr:
         case sql_expr.Create(kind="SCHEMA", this=schema_def):
             s_name = schema_def.db
@@ -162,7 +172,10 @@ def expr_as_op(expr: Expression) -> Optional[Stmt.Op]:
         case sql_expr.Create(kind="TABLE", this=id_info):
             return Stmt.CreateTable(expr, get_identifiers(id_info))
         case sql_expr.Create(kind="INDEX", this=index):
-            t_name = index.this.this if index.this else None
+            if index.this:
+                t_name = OptionalName.Static(index.this.this)
+            else:
+                t_name = OptionalName.Anon(get_uuid(), hydrated_name=None)
             return Stmt.CreateIndex(expr, t_name)
         case sql_expr.Create(kind="FUNCTION", this=id_info):
             return Stmt.CreateFunction(expr, get_identifiers(id_info.this))

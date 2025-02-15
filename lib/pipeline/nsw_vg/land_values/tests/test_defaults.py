@@ -6,7 +6,7 @@ def test_order_of_defaults():
 def test_filesnames_correct():
     fnames = [t.src_dst for t in byo_land_values]
     generated = [
-        f'nswvg_lv_{t.datetime.strftime("%d_%b_%Y")}'
+        f'LV_{t.datetime.strftime("%Y%m%d")}'
         for t in byo_land_values
     ]
     assert fnames == generated

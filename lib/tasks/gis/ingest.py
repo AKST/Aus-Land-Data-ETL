@@ -27,6 +27,7 @@ async def ingest(
         await ingest_deduplication(
             db,
             io,
+            uuid,
             clock,
             config.deduplication,
         )

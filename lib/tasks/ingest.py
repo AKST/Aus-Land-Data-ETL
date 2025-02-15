@@ -81,6 +81,7 @@ async def ingest_all(config: IngestConfig):
         UpdateSchemaConfig(packages=ns_dependency_order, range=None, apply=True),
         db_service,
         io_service,
+        uuid,
     )
 
     await config_partitions(
@@ -107,6 +108,7 @@ async def ingest_all(config: IngestConfig):
             ),
             db_service,
             io_service,
+            uuid,
         )
 
 
@@ -115,6 +117,7 @@ async def ingest_all(config: IngestConfig):
         clock,
         db_service,
         io_service,
+        uuid,
         NswVgTaskConfig.Ingestion(
             load_raw_land_values=NswVgTaskConfig.LandValue.Main(
                 land_value_source='byo',
@@ -152,6 +155,7 @@ async def ingest_all(config: IngestConfig):
                 run_till=None,
             ),
             property_descriptions=NswVgTaskConfig.PropDescIngest(
+                truncate_earlier=False,
                 worker_debug=False,
                 workers=8,
                 sub_workers=8,
@@ -202,7 +206,7 @@ async def ingest_all(config: IngestConfig):
     await run_count_for_schemas(db_service_config, ns_dependency_order)
 
     if config.enable_clean_staging_data:
-        await clean_staging_data(db_service, io_service)
+        await clean_staging_data(db_service, io_service, uuid)
     else:
         _logger.info('staging data not cleaned')
 

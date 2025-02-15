@@ -4,6 +4,7 @@ from typing import List
 from lib.service.clock import ClockService
 from lib.service.database import *
 from lib.service.io import IoService, IoServiceImpl
+from lib.service.uuid import *
 from lib.tooling.schema import SchemaCommand, create_schema_controller
 from lib.utility.format import fmt_time_elapsed
 
@@ -39,6 +40,7 @@ all_scripts = [
 async def ingest_deduplicate(
     db: DatabaseService,
     io: IoService,
+    uuid: UuidService,
     clock: ClockService,
     config: NswVgTaskConfig.Dedup,
 ):
@@ -51,7 +53,7 @@ async def ingest_deduplicate(
     else:
         scripts = all_scripts[run_from - 1:run_till]
 
-    controller = create_schema_controller(io, db)
+    controller = create_schema_controller(io, db, uuid)
 
     async def run_commands(commands: List[SchemaCommand]):
         for c in commands:
@@ -142,6 +144,7 @@ if __name__ == '__main__':
 
     async def _cli_main() -> None:
         clock = ClockService()
+        uuid = UuidServiceImpl()
         io = IoServiceImpl.create(None)
         db = DatabaseServiceImpl.create(
             db_config,
@@ -149,7 +152,7 @@ if __name__ == '__main__':
         )
         try:
             await db.open()
-            await ingest_deduplicate(db, io, clock, config)
+            await ingest_deduplicate(db, io, uuid, clock, config)
         finally:
             await db.close()
 

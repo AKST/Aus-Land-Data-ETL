@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock
 
 from lib.service.database.mock import MockDatabaseService
 from lib.service.io import IoService
+from lib.service.uuid.mocks import MockUuidService
 
 from ..controller import SchemaController
 from ..reader import SchemaReader, sql_as_operations
@@ -53,7 +54,7 @@ async def test_alter_t_add_fk(t: Transform.T, sql_in: str, sql_out: str):
             ns='abs',
             step=1,
             name=None,
-            contents=sql_as_operations(sql_in),
+            contents=sql_as_operations(sql_in, lambda: 'mock-uuid'),
         ),
     ]
     ctrl = SchemaController(io, db, reader)

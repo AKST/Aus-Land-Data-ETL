@@ -2,6 +2,7 @@ import logging
 from lib.pipeline import gnaf
 from lib.service.database import DatabaseServiceImpl, DatabaseService
 from lib.service.io import IoService, IoServiceImpl
+from lib.service.uuid import *
 
 _logger = logging.getLogger(__name__)
 
@@ -45,6 +46,7 @@ if __name__ == '__main__':
     instance_cfg = INSTANCE_CFG[args.instance]
 
     async def main() -> None:
+        uuid = UuidServiceImpl()
         io = IoServiceImpl.create(file_limit)
         db = DatabaseServiceImpl.create(instance_cfg.database, 1)
         async with get_session(io, 'env-gnaf-cli') as session:
@@ -54,7 +56,7 @@ if __name__ == '__main__':
             raise ValueError('no gnaf publication')
 
         if args.reset_schema:
-            controller = create_schema_controller(io, db)
+            controller = create_schema_controller(io, db, uuid)
             await controller.command(SchemaCommand.drop(ns='gnaf', cascade=True))
             await controller.command(SchemaCommand.create(ns='gnaf'))
 

@@ -1,1 +1,1 @@
-SchemaSyntax(operations=[Stmt.CreateIndex(index_name=None)])
+SchemaSyntax(operations=[Stmt.CreateIndex(index_name=OptionalName.Anon(id='mock-uuid', hydrated_name=None))])

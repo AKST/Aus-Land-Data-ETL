@@ -18,7 +18,7 @@ from lib.pipeline.nsw_vg.property_sales.orchestration import *
 from lib.service.clock import ClockService
 from lib.service.io import IoService, IoServiceImpl
 from lib.service.database import *
-from lib.service.uuid import UuidServiceImpl
+from lib.service.uuid import *
 from lib.utility.sampling import Sampler, SamplingConfig
 
 from .config import NswVgTaskConfig
@@ -148,8 +148,6 @@ async def _child_main(
     finally:
         await db.close()
 
-
-
 async def _cli_main(
     config: NswVgTaskConfig.PsiIngest,
     db_config: DatabaseConfig,
@@ -160,6 +158,7 @@ async def _cli_main(
     from ..fetch_static_files import get_session, initialise
 
     clock = ClockService()
+    uuid = UuidServiceImpl()
     io = IoServiceImpl.create(file_limit)
     db = DatabaseServiceImpl.create(db_config, 1)
 
@@ -167,7 +166,7 @@ async def _cli_main(
         environment = await initialise(io, session)
 
     if truncate:
-        controller = create_schema_controller(io, db)
+        controller = create_schema_controller(io, db, uuid)
         await controller.command(SchemaCommand.truncate(
             ns='nsw_vg',
             ns_range=range(3, 4),

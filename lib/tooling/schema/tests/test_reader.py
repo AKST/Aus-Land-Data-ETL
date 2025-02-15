@@ -5,6 +5,8 @@ import sqlglot
 from ..reader import sql_as_operations
 from ..type import Ref, AlterTableAction
 
+mock_get_uuid = lambda: 'mock-uuid'
+
 @pytest.mark.parametrize("sql", [
     "CREATE SCHEMA s",
     "CREATE SCHEMA IF NOT EXISTS s",
@@ -33,7 +35,7 @@ from ..type import Ref, AlterTableAction
     "ALTER TABLE n.a ADD CONSTRAINT fk_n_a_aa_n_b_bb FOREIGN KEY (aa) REFERENCES n.b(bb)",
 ])
 def test_expr_as_op(snapshot, sql: str):
-    operations = sql_as_operations(sql)
+    operations = sql_as_operations(sql, mock_get_uuid)
     snapshot.assert_match(pformat(operations, width=150), 'schema')
 
 @pytest.mark.parametrize("sql,fk_name,src_ref,ref_ref,src_col,ref_col", [
@@ -55,7 +57,7 @@ def test_expr_as_op(snapshot, sql: str):
     ),
 ])
 def test_alter_table(sql, fk_name, src_ref, ref_ref, src_col, ref_col):
-    s = next(o for o in sql_as_operations(sql).operations)
+    s = next(o for o in sql_as_operations(sql, mock_get_uuid).operations)
     assert s.altered_table == src_ref
     assert s.actions[0].constraint_name == fk_name
     assert s.actions[0].constraint_column == src_col
@@ -67,7 +69,7 @@ def test_alter_table(sql, fk_name, src_ref, ref_ref, src_col, ref_col):
     "CREATE OR REPLACE FUNCTION a.c(input TEXT) RETURNS TEXT $$ BEGIN RETURN ''; END; $$ LANGUAGE plpgsql",
 ])
 def test_create_function_name_and_namespace(sql):
-    schema = sql_as_operations(sql)
+    schema = sql_as_operations(sql, mock_get_uuid)
     create_function = next(o for o in schema.operations)
     assert create_function.func.schema_name == 'a'
     assert create_function.func.name == 'c'
@@ -75,7 +77,7 @@ def test_create_function_name_and_namespace(sql):
 def test_schema_for_parition():
     sql = \
         "CREATE TABLE a.c PARTITION OF b.a FOR VALUES WITH (MODULUS 8, REMAINDER 0)"
-    schema = sql_as_operations(sql)
+    schema = sql_as_operations(sql, mock_get_uuid)
     create_parition = next(o for o in schema.operations)
     assert create_parition.partition.schema_name == 'a'
 
@@ -85,21 +87,21 @@ def test_schema_for_parition():
 ])
 def test_alter_table_set_schema(ref):
     sql = f"ALTER TABLE {ref} SET SCHEMA b;"
-    schema = sql_as_operations(sql)
+    schema = sql_as_operations(sql, mock_get_uuid)
     alt_table = next(o for o in schema.operations)
     assert alt_table.altered_table == ref
     assert alt_table.actions == [AlterTableAction.SetSchema(None, 'b')]
 
 def test_normal_index():
     sql = "CREATE INDEX idx_a ON a (id)"
-    schema = sql_as_operations(sql)
+    schema = sql_as_operations(sql, mock_get_uuid)
     create_index = next(o for o in schema.operations)
     assert not create_index.is_concurrent
     assert schema.can_be_used_in_transaction
 
 def test_concurrent_index():
     sql = "CREATE INDEX CONCURRENTLY idx_a ON a (id)"
-    schema = sql_as_operations(sql)
+    schema = sql_as_operations(sql, mock_get_uuid)
     create_index = next(o for o in schema.operations)
     assert create_index.is_concurrent
     assert not schema.can_be_used_in_transaction

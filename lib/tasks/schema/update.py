@@ -5,6 +5,7 @@ from sys import maxsize
 
 from lib.service.database import DatabaseServiceImpl, DatabaseService
 from lib.service.io import IoService, IoServiceImpl
+from lib.service.uuid import *
 from lib.tooling.schema import create_schema_controller, SchemaCommand
 from lib.tooling.schema.config import ns_dependency_order, schema_ns
 from lib.tooling.schema.type import SchemaNamespace
@@ -22,9 +23,10 @@ async def update_schema(
     config: UpdateSchemaConfig,
     db: DatabaseService,
     io: IoService,
+    uuid: UuidService,
 ) -> None:
     _logger.info('initalising nsw_vg db schema')
-    controller = create_schema_controller(io, db)
+    controller = create_schema_controller(io, db, uuid)
 
     ordered = [p for p in ns_dependency_order if p in config.packages]
     drop_list = reversed(ordered) if config.revert else []
@@ -66,7 +68,7 @@ async def run_script(f: str, db: DatabaseService, io: IoService) -> None:
     async with db.async_connect() as c, c.cursor() as cursor:
         await cursor.execute(await io.f_read(f))
 
-async def nuke(db: DatabaseService, io: IoService) -> None:
+async def nuke(db: DatabaseService, io: IoService, uuid: UuidService) -> None:
     await update_schema(
         UpdateSchemaConfig(
             packages=ns_dependency_order,
@@ -76,6 +78,7 @@ async def nuke(db: DatabaseService, io: IoService) -> None:
         ),
         db,
         io,
+        uuid,
     )
 
 if __name__ == '__main__':
@@ -124,6 +127,7 @@ if __name__ == '__main__':
     main_logger.debug(f'db config {db_conf}')
     main_logger.debug(f'file limit {file_limit}')
 
+    uuid = UuidServiceImpl()
 
     async def main(f) -> None:
         io = IoServiceImpl.create(file_limit)
@@ -152,9 +156,9 @@ if __name__ == '__main__':
             )
 
             main_logger.debug(f'config {config}')
-            f = lambda db, io: update_schema(config, db, io)
+            f = lambda db, io: update_schema(config, db, io, uuid)
         case 'nuke':
-            f = lambda db, io: nuke(db, io)
+            f = lambda db, io: nuke(db, io, uuid)
         case 'task':
             f = lambda db, io: run_script(args.path, db, io)
         case other:

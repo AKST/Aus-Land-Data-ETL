@@ -1,9 +1,19 @@
 from collections import namedtuple
+from logging import getLogger
 from sqlglot import expressions, Expression
 from typing import Dict, Iterator, List, Optional, Set, Tuple, Type
 
 from lib.service.database import DbCursorLike
-from ..type import Ref, Stmt, SchemaSyntax, EntityKind, AlterTableAction as AtAct
+from ..type import (
+    AlterTableAction as AtAct,
+    EntityKind,
+    OptionalName,
+    Ref,
+    Stmt,
+    SchemaSyntax,
+)
+
+_logger = getLogger(__name__)
 
 def generate_actions(operation: Expression, table: Ref, actions: list[AtAct.Op]) -> Iterator[str]:
     for action in actions:
@@ -67,8 +77,15 @@ def drop(commands: SchemaSyntax, cascade: bool = False) -> Iterator[str]:
                 yield f'DROP FUNCTION IF EXISTS {str(ref)}{sfx}'
             case Stmt.CreateTablePartition(expr, ref):
                 yield f'DROP TABLE IF EXISTS {str(ref)}{sfx}'
-            case Stmt.CreateIndex(expr, name):
-                yield f'DROP INDEX IF EXISTS {name}'
+            case Stmt.CreateIndex(expr, index_name=index_name):
+                match index_name:
+                    case OptionalName.Static(name):
+                        yield f'DROP INDEX IF EXISTS {name}'
+                    case OptionalName.Anon(_, hydrated_name) if hydrated_name is not None:
+                        if hydrated_name:
+                            yield f'DROP INDEX IF EXISTS {hydrated_name}'
+                        else:
+                            _logger.warn('missing anon index name')
             case Stmt.CreateView(expr, ref, materialized):
                 kind = 'MATERIALIZED VIEW' if materialized else 'view'
                 yield f'DROP {kind} IF EXISTS {str(ref)}{sfx}'
@@ -193,7 +210,7 @@ async def make_fk_map(contents: SchemaSyntax, cursor: DbCursorLike) -> FkMap:
             case Stmt.CreateType(expr, ref):
                 out[(Stmt.CreateType, str(ref))] = None
             case Stmt.CreateIndex(expr, name):
-                out[(Stmt.CreateIndex, name)] = None
+                out[(Stmt.CreateIndex, str(name))] = None
             case Stmt.CreateTable(expr, Ref(schema_name, name)):
                 args: Tuple[str] | Tuple[str, str]
                 if schema_name:

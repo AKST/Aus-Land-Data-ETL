@@ -5,6 +5,8 @@ from ..type import Stmt
 from ..codegen import *
 from ..reader import sql_as_operations
 
+mock_get_uuid = lambda: 'mock-uuid'
+
 @pytest.mark.parametrize("omit_foreign_keys,sql", [
     (False, "CREATE SCHEMA s"),
     (False, "CREATE UNLOGGED TABLE a (b_id INT)"),
@@ -28,7 +30,7 @@ from ..reader import sql_as_operations
     (False, "DO $$ DECLARE total INT := 1; FOR i in 0..total LOOP\n EXECUTE 'select 1';\nEND LOOP; END $$;"),
 ])
 def test_create(snapshot, omit_foreign_keys: bool, sql: str):
-    codegen = list(create(sql_as_operations(sql), omit_foreign_keys))
+    codegen = list(create(sql_as_operations(sql, mock_get_uuid), omit_foreign_keys))
     snapshot.assert_match(pformat(codegen), sql)
 
 @pytest.mark.parametrize("cascade,sql", [
@@ -45,10 +47,10 @@ def test_create(snapshot, omit_foreign_keys: bool, sql: str):
     ]
 ])
 def test_drop_truncate(snapshot, cascade: bool, sql: str):
-    codegen = list(drop(sql_as_operations(sql), cascade))
+    codegen = list(drop(sql_as_operations(sql, mock_get_uuid), cascade))
     snapshot.assert_match(pformat(codegen), "drop")
 
-    codegen = list(truncate(sql_as_operations(sql), cascade))
+    codegen = list(truncate(sql_as_operations(sql, mock_get_uuid), cascade))
     snapshot.assert_match(pformat(codegen), "truncate")
 
 @pytest.mark.parametrize("sql", [
@@ -72,7 +74,7 @@ def test_drop_truncate(snapshot, cascade: bool, sql: str):
     ]
 ])
 def test_create_table_add_fk(snapshot, sql: str):
-    codegen = list(add_foreign_keys(sql_as_operations(sql)))
+    codegen = list(add_foreign_keys(sql_as_operations(sql, mock_get_uuid)))
     snapshot.assert_match(pformat(codegen), "add_foreign_keys")
 
 @pytest.mark.parametrize("sql,fks_for_table,allow,disallow", [
@@ -116,7 +118,7 @@ def test_create_table_rm_fk(
         allow: list[str],
         disallow: list[str],
 ):
-    codegen = list(remove_foreign_keys(sql_as_operations(sql), fks_for_table))
+    codegen = list(remove_foreign_keys(sql_as_operations(sql, mock_get_uuid), fks_for_table))
     snapshot.assert_match(pformat(codegen), "remove_foreign_keys")
     assert not any([item in stmt for stmt in codegen for item in disallow])
     assert all([any([item in stmt for item in allow]) for stmt in codegen])

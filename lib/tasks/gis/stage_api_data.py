@@ -165,7 +165,7 @@ async def run_in_console(
     db = DatabaseServiceImpl.create(db_config, config.db_workers)
     uuid = UuidServiceImpl()
     clock = ClockService()
-    controller = create_schema_controller(io, db)
+    controller = create_schema_controller(io, db, uuid)
     match config.db_mode:
         case 'write':
             await controller.command(SchemaCommand.drop(ns='nsw_spatial'))

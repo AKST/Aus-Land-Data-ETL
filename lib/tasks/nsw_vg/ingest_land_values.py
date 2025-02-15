@@ -30,6 +30,7 @@ from lib.tooling.schema import create_schema_controller, SchemaCommand
 
 from .config import NswVgTaskConfig
 
+_BYO_LV_DIR = '_cfg_byo_lv'
 _ZIPDIR = './_out_zip'
 
 async def cli_main(cfg: NswVgTaskConfig.LandValue.Main) -> None:
@@ -41,16 +42,17 @@ async def cli_main(cfg: NswVgTaskConfig.LandValue.Main) -> None:
     clock = ClockService()
 
     async with get_session(io, 'lv') as session:
-        await ingest_land_values(cfg, io, db, clock, session)
+        await ingest_land_values(cfg, io, db, uuid, clock, session)
 
 async def ingest_land_values(cfg: NswVgTaskConfig.LandValue.Main,
                     io: IoService,
                     db: DatabaseService,
+                    uuid: UuidService,
                     clock: ClockService,
                     session: AbstractClientSession) -> None:
     static_env = StaticEnvironmentInitialiser.create(io, session)
     logger = logging.getLogger(f'{__name__}.spawn')
-    controller = create_schema_controller(io, db)
+    controller = create_schema_controller(io, db, uuid)
     if cfg.truncate_raw_earlier:
         logger.info('dropping earlier raw data')
         await controller.command(SchemaCommand.truncate(
@@ -61,7 +63,11 @@ async def ingest_land_values(cfg: NswVgTaskConfig.LandValue.Main,
     recv_q: MpQueue = MpQueue()
     telemetry = NswVgLvTelemetry.create(clock)
 
-    discovery_cfg = NswVgLvCsvDiscoveryConfig(cfg.discovery_mode, _ZIPDIR)
+    discovery_cfg = NswVgLvCsvDiscoveryConfig(
+        cfg.discovery_mode,
+        unzip_dir=_ZIPDIR,
+        byo_dir=_BYO_LV_DIR,
+    )
     discovery: NswVgLvAbstractCsvDiscovery
     match cfg.land_value_source:
         case 'web':
