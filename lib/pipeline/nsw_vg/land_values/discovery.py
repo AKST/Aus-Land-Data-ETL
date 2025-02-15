@@ -10,9 +10,9 @@ from lib.service.io import IoService
 from lib.service.static_environment import StaticEnvironmentInitialiser
 
 from ..discovery import NswVgPublicationDiscovery, NSWVG_LV_DISCOVERY_CFG
+from ._util import select_targets
 from .config import NswVgLvTaskDesc, DiscoveryMode, ByoLandValue
 from .telemetry import NswVgLvTelemetry
-from .util import select_targets
 
 _BYO_LV_DIR = '_cfg_byo_lv'
 

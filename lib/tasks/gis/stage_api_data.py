@@ -23,10 +23,7 @@ from lib.pipeline.gis import (
     GisProjection,
     DateRangeParam,
     HOST_SEMAPHORE_CONFIG,
-    ENSW_DA_PROJECTION,
-    SNSW_LOT_PROJECTION,
-    SNSW_PROP_PROJECTION,
-    ENSW_ZONE_PROJECTION,
+    defaults,
     YearMonth,
 )
 from lib.service.database import *
@@ -117,9 +114,9 @@ async def stage_gis_api_data(
     projections: List[GisProjection] = []
 
     if 'snsw_lot' in conf.projections:
-        projections.append(SNSW_LOT_PROJECTION)
+        projections.append(defaults.SNSW_LOT_PROJECTION)
     if 'snsw_prop' in conf.projections:
-        projections.append(SNSW_PROP_PROJECTION)
+        projections.append(defaults.SNSW_PROP_PROJECTION)
 
     match conf.db_mode:
         case 'write':

@@ -15,7 +15,7 @@ from lib.service.http import (
 
 from .config import GisProjection, FeaturePageDescription
 from .cache_cleaner import AbstractCacheCleaner
-from .url import get_count_url_params, get_page_url_params
+from ._url import get_count_url_params, get_page_url_params
 
 @dataclass(frozen=True)
 class FeatureExpBackoff:

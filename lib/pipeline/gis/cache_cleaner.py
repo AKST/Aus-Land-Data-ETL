@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 from lib.service.http import HttpLocalCache
 
 from .config import GisProjection, FeaturePageDescription
-from .url import get_page_url_params, UrlParams
+from ._url import get_page_url_params, UrlParams
 
 def get_page_clauses(schema_url: str, params: UrlParams, keys: Set[str]) -> List[str]:
     return [schema_url, *[

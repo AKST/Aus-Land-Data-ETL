@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import List
+
+from .._util import select_targets, NswVgTarget
 from ..config import DiscoveryMode
-from ..util import select_targets, NswVgTarget
 
 def make_targets() -> List[NswVgTarget]:
     letters = [chr(i) for i in range(ord('a'), ord('z'))]
@@ -67,6 +68,18 @@ def test_select_each_nth_year_plus_first() -> None:
         NswVgTarget('a', 'a', 'a', None, datetime(2024, 12, 1)),
         NswVgTarget('e', 'e', 'e', None, datetime(2020, 12, 1)),
         NswVgTarget('i', 'i', 'i', None, datetime(2016, 12, 1)),
+        NswVgTarget('k', 'k', 'k', None, datetime(2014, 1, 1)),
+    ]
+
+
+def test_range_adjust_if_one_missing() -> None:
+    mode = DiscoveryMode.EachNthYear(3, include_first=True)
+    targets = [t for t in make_targets() if t.datetime != datetime(2021, 12, 1)]
+    assert select_targets(mode, targets) == [
+        NswVgTarget('a', 'a', 'a', None, datetime(2024, 12, 1)),
+        NswVgTarget('c', 'c', 'c', None, datetime(2022, 1, 1)),
+        NswVgTarget('f', 'f', 'f', None, datetime(2019, 1, 1)),
+        NswVgTarget('i', 'i', 'i', None, datetime(2016, 1, 1)),
         NswVgTarget('k', 'k', 'k', None, datetime(2014, 1, 1)),
     ]
 
