@@ -1,8 +1,1 @@
-from .message import (
-    msg_registry,
-    CloseRequest,
-    HandshakeRequest,
-    HandshakeResponse,
-    EchoRequest,
-    EchoResponse,
-)
+from .message import echo_ns, Message, EchoRequest, EchoResponse

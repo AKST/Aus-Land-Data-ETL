@@ -1,5 +1,6 @@
 import os
 import asyncio
+import logging
 import psutil
 import signal
 import socket
@@ -9,6 +10,9 @@ import time
 from typing import List, Optional, Tuple
 
 from lib.daemon.echo import *
+from lib.utility.daemon import *
+
+_logger = logging.getLogger(__name__)
 
 EVAR_PROC_NAME = "DB_AKST_IO_PROC_NAME"
 EVAR_PROC_PORT = "DB_AKST_IO_PROC_PORT"
@@ -50,12 +54,12 @@ async def find_daemon_port(pid: int, timeout: float) -> int:
             try:
                 port_candidate = conn.laddr.port
                 reader, writer = await asyncio.open_connection("localhost", port_candidate)
-                writer.write(msg_registry.encode(HandshakeRequest()))
+                writer.write(echo_ns.encode(Sys.HandshakeReq()))
                 await writer.drain()
 
-                match msg_registry.decode(await reader.read(1024)):
-                    case HandshakeResponse():
-                        writer.write(msg_registry.encode(CloseRequest()))
+                match echo_ns.decode(await reader.read(1024)):
+                    case Sys.HandshakeAck():
+                        writer.write(echo_ns.encode(Sys.Disconnect()))
                         await writer.drain()
 
                         writer.close()
@@ -110,33 +114,38 @@ async def communicate_with_daemon() -> None:
     host = 'localhost'
     try:
         pid, port = await find_process("HTTP_DAEMON")
-        print(f"found daemon @ {pid} with port {port}")
+        _logger.info(f"found daemon @ {pid} with port {port}")
     except DaemonNotFound:
         pid, port = await start_process("HTTP_DAEMON", "lib.daemon.http.entry", timeout=5)
-        print(f"started daemon @ {pid} with port {port}")
+        _logger.info(f"started daemon @ {pid} with port {port}")
 
     try:
         reader, writer = await asyncio.open_connection(host, port)
-        print(f"Connected to daemon at {host}:{port}")
+        _logger.info(f"Connected to daemon at {host}:{port}")
 
         # Send a request
         echo_req = EchoRequest(message="Hello, daemon!")
-        writer.write(msg_registry.encode(echo_req))
+        writer.write(echo_ns.encode(echo_req))
         await writer.drain()
 
         # Read the response
-        echo_resp = msg_registry.decode(await reader.read(1024))
-        print(f"Response from daemon: {echo_resp}")
+        echo_resp = echo_ns.decode(await reader.read(1024))
+        _logger.info(f"Response from daemon: {echo_resp}")
 
-        writer.write(msg_registry.encode(CloseRequest()))
+        writer.write(echo_ns.encode(Sys.Disconnect()))
         await writer.drain()
 
         writer.close()
         await writer.wait_closed()
     except ConnectionRefusedError:
-        print("Daemon is not running.")
+        _logger.info("Daemon is not running.")
     except Exception as e:
-        print(f"Error: {e}")
+        _logger.info(f"Error: {e}")
 
 if __name__ == '__main__':
+    from lib.utility.logging import config_vendor_logging, config_logging
+
+    config_vendor_logging(set())
+    config_logging(worker=None, debug=False, output_name='daemon-client')
+
     asyncio.run(communicate_with_daemon())

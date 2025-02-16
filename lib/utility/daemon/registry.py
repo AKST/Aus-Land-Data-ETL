@@ -1,12 +1,15 @@
 import struct
 from dataclasses import dataclass, fields, field, Field
-from typing import Any, Callable, Dict, List, Self, Type, TypeVar, Union
+from typing import Any, Callable, Dict, List, Self, Type, TypeVar, Union, overload
+
+from .standard_messages import install_system_messages
+from .type import MessageNamespace
 
 def msg_field(id: int, t: Type[Any], **kwargs) -> Any:
     """A decorator for fields that adds an 'id' to their metadata."""
     return field(metadata={ "type": t, "id": id, "skip": False }, **kwargs)
 
-class MessageRegistry:
+class MessageRegistry(MessageNamespace):
     _encode_registry: dict[Type[Any], str]
     _decode_registry: dict[str, Type[Any]]
 
@@ -14,7 +17,21 @@ class MessageRegistry:
         self._encode_registry = {}
         self._decode_registry = {}
 
-    def register(self, message_id: str) -> Callable[[Type[Any]], Type[Any]]:
+    @classmethod
+    def create(Cls) -> 'MessageRegistry':
+        registry = Cls()
+        install_system_messages(registry)
+        return registry
+
+    @overload
+    def define(self, message_id: str) -> Callable[[Type[Any]], Type[Any]]:
+        ...
+
+    @overload
+    def define(self, message_id: str, message_cls: Type[Any]) -> Callable[[Type[Any]], Type[Any]]:
+        ...
+
+    def define(self, message_id: str, message_cls: Type[Any] | None = None):
         if message_id in self._decode_registry:
             raise ValueError('message id already used')
 
@@ -26,7 +43,10 @@ class MessageRegistry:
             self._encode_registry[message_cls] = message_id
             return message_cls
 
-        return _register
+        if message_cls is not None:
+            return _register(message_cls)
+        else:
+            return _register
 
     def encode(self, message: Any) -> bytes:
         if type(message) not in self._encode_registry:

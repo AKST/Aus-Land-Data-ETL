@@ -1,35 +1,33 @@
 from abc import ABC
-from dataclasses import dataclass, fields, field
-from lib.utility.daemon import MessageRegistry, msg_field
+from dataclasses import dataclass
+from typing import Union, Self, Protocol
 
-msg_registry = MessageRegistry()
+from lib.utility.daemon import (
+    DaemonClientRpc,
+    MessageRegistry,
+    msg_field,
+    Sys,
+)
 
-class Message(ABC):
+echo_ns = MessageRegistry.create()
+
+class AppMessage(ABC):
     ...
 
-@msg_registry.register('req:base:close')
-@dataclass
-class CloseRequest(Message):
-    ...
+Message = Union[AppMessage, Sys.T]
 
-@msg_registry.register('req:base:handshake')
+@echo_ns.define('req:app:echo')
 @dataclass
-class HandshakeRequest(Message):
-    ...
-
-@msg_registry.register('res:base:handshake')
-@dataclass
-class HandshakeResponse(Message):
-    ...
-
-@msg_registry.register('req:app:echo')
-@dataclass
-class EchoRequest(Message):
+class EchoRequest(AppMessage):
     message: str = msg_field(1, str)
 
-@msg_registry.register('res:app:echo')
+@echo_ns.define('res:app:echo')
 @dataclass
-class EchoResponse(Message):
+class EchoResponse(AppMessage):
     message: str = msg_field(1, str)
 
+
+class EchoRpc(DaemonClientRpc, Protocol):
+    async def echo(self: Self, msg: EchoRequest) -> EchoResponse:
+        ...
 
