@@ -110,7 +110,7 @@ if __name__ == '__main__':
     from lib.utility.logging import config_vendor_logging, config_logging
 
     config_vendor_logging(set())
-    config_logging(worker=None, debug=False, output_name='daemon-server')
+    config_logging(worker=None, debug=False, output_name='daemon-server:echo')
 
     _logger = logging.getLogger(__name__)
     _logger.info(f"daemon @ {os.getpid()}, starting http")

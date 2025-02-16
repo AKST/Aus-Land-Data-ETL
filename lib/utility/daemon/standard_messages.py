@@ -1,6 +1,6 @@
 from abc import ABC
 from dataclasses import dataclass, fields, field
-from .type import MessageNamespace
+from .types import MessageNamespace, Request
 
 
 class Sys:
@@ -12,11 +12,11 @@ class Sys:
         ...
 
     @dataclass
-    class HandshakeReq(T):
+    class HandshakeAck(T):
         ...
 
     @dataclass
-    class HandshakeAck(T):
+    class HandshakeReq(Request[HandshakeAck], T):
         ...
 
 def install_system_messages(ns: MessageNamespace):

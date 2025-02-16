@@ -3,7 +3,7 @@ from dataclasses import dataclass, fields, field, Field
 from typing import Any, Callable, Dict, List, Self, Type, TypeVar, Union, overload
 
 from .standard_messages import install_system_messages
-from .type import MessageNamespace
+from .types import MessageNamespace
 
 def msg_field(id: int, t: Type[Any], **kwargs) -> Any:
     """A decorator for fields that adds an 'id' to their metadata."""
@@ -32,12 +32,11 @@ class MessageRegistry(MessageNamespace):
         ...
 
     def define(self, message_id: str, message_cls: Type[Any] | None = None):
-        if message_id in self._decode_registry:
-            raise ValueError('message id already used')
+        skip = message_id in self._decode_registry
 
         def _register(message_cls: Type[Any]) -> Type[Any]:
-            if message_cls in self._encode_registry:
-                raise ValueError('message cls already registed')
+            if skip or message_cls in self._encode_registry:
+                return message_cls
 
             self._decode_registry[message_id] = message_cls
             self._encode_registry[message_cls] = message_id
